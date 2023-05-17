@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "*.py": "python",
+        "mman.h": "c",
+        "errno.h": "c",
+        "err.h": "c",
+        "fs.h": "c",
+        "pgtable.h": "c",
+        "pgtable_64.h": "c",
+        "fixmap.h": "c",
+        "segment.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "enabled"
+}
