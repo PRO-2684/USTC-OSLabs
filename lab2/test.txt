@@ -1,0 +1,145 @@
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.1 166564 11292 ?        Ss   Apr19   0:34 /sbin/init
+root           2  0.0  0.0      0     0 ?        S    Apr19   0:00 [kthreadd]
+root           3  0.0  0.0      0     0 ?        I<   Apr19   0:00 [rcu_gp]
+root           4  0.0  0.0      0     0 ?        I<   Apr19   0:00 [rcu_par_gp]
+root           5  0.0  0.0      0     0 ?        I<   Apr19   0:00 [slub_flushwq]
+root           6  0.0  0.0      0     0 ?        I<   Apr19   0:00 [netns]
+root           8  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kworker/0:0H-events_highpri]
+root          10  0.0  0.0      0     0 ?        I<   Apr19   0:00 [mm_percpu_wq]
+root          11  0.0  0.0      0     0 ?        S    Apr19   0:00 [rcu_tasks_rude_]
+root          12  0.0  0.0      0     0 ?        S    Apr19   0:00 [rcu_tasks_trace]
+root          13  0.0  0.0      0     0 ?        S    Apr19   0:03 [ksoftirqd/0]
+root          14  0.0  0.0      0     0 ?        I    Apr19   1:02 [rcu_sched]
+root          15  0.0  0.0      0     0 ?        S    Apr19   0:01 [migration/0]
+root          16  0.0  0.0      0     0 ?        S    Apr19   0:00 [idle_inject/0]
+root          18  0.0  0.0      0     0 ?        S    Apr19   0:00 [cpuhp/0]
+root          19  0.0  0.0      0     0 ?        S    Apr19   0:00 [cpuhp/1]
+root          20  0.0  0.0      0     0 ?        S    Apr19   0:00 [idle_inject/1]
+root          21  0.0  0.0      0     0 ?        S    Apr19   0:01 [migration/1]
+root          22  0.0  0.0      0     0 ?        S    Apr19   0:02 [ksoftirqd/1]
+root          24  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kworker/1:0H-events_highpri]
+root          25  0.0  0.0      0     0 ?        S    Apr19   0:00 [cpuhp/2]
+root          26  0.0  0.0      0     0 ?        S    Apr19   0:00 [idle_inject/2]
+root          27  0.0  0.0      0     0 ?        S    Apr19   0:01 [migration/2]
+root          28  0.0  0.0      0     0 ?        S    Apr19   0:03 [ksoftirqd/2]
+root          30  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kworker/2:0H-kblockd]
+root          31  0.0  0.0      0     0 ?        S    Apr19   0:00 [cpuhp/3]
+root          32  0.0  0.0      0     0 ?        S    Apr19   0:00 [idle_inject/3]
+root          33  0.0  0.0      0     0 ?        S    Apr19   0:01 [migration/3]
+root          34  0.0  0.0      0     0 ?        S    Apr19   0:03 [ksoftirqd/3]
+root          36  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kworker/3:0H-events_highpri]
+root          37  0.0  0.0      0     0 ?        S    Apr19   0:00 [kdevtmpfs]
+root          38  0.0  0.0      0     0 ?        I<   Apr19   0:00 [inet_frag_wq]
+root          39  0.0  0.0      0     0 ?        S    Apr19   0:00 [kauditd]
+root          40  0.0  0.0      0     0 ?        S    Apr19   0:00 [khungtaskd]
+root          41  0.0  0.0      0     0 ?        S    Apr19   0:00 [oom_reaper]
+root          42  0.0  0.0      0     0 ?        I<   Apr19   0:00 [writeback]
+root          43  0.0  0.0      0     0 ?        S    Apr19   0:12 [kcompactd0]
+root          44  0.0  0.0      0     0 ?        SN   Apr19   0:00 [ksmd]
+root          45  0.0  0.0      0     0 ?        SN   Apr19   0:02 [khugepaged]
+root          91  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kintegrityd]
+root          92  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kblockd]
+root          93  0.0  0.0      0     0 ?        I<   Apr19   0:00 [blkcg_punt_bio]
+root          95  0.0  0.0      0     0 ?        I<   Apr19   0:00 [tpm_dev_wq]
+root          96  0.0  0.0      0     0 ?        I<   Apr19   0:00 [ata_sff]
+root          97  0.0  0.0      0     0 ?        I<   Apr19   0:00 [md]
+root          98  0.0  0.0      0     0 ?        I<   Apr19   0:00 [edac-poller]
+root          99  0.0  0.0      0     0 ?        I<   Apr19   0:00 [devfreq_wq]
+root         100  0.0  0.0      0     0 ?        S    Apr19   0:00 [watchdogd]
+root         103  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kworker/1:1H-kblockd]
+root         105  0.0  0.0      0     0 ?        S    Apr19   0:01 [kswapd0]
+root         107  0.0  0.0      0     0 ?        S    Apr19   0:00 [ecryptfs-kthrea]
+root         109  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kthrotld]
+root         110  0.0  0.0      0     0 ?        I<   Apr19   0:00 [acpi_thermal_pm]
+root         112  0.0  0.0      0     0 ?        S    Apr19   0:00 [scsi_eh_0]
+root         113  0.0  0.0      0     0 ?        I<   Apr19   0:00 [scsi_tmf_0]
+root         114  0.0  0.0      0     0 ?        S    Apr19   0:00 [scsi_eh_1]
+root         115  0.0  0.0      0     0 ?        I<   Apr19   0:00 [scsi_tmf_1]
+root         117  0.0  0.0      0     0 ?        I<   Apr19   0:00 [vfio-irqfd-clea]
+root         118  0.0  0.0      0     0 ?        I<   Apr19   0:00 [mld]
+root         119  0.0  0.0      0     0 ?        I<   Apr19   0:01 [kworker/0:1H-kblockd]
+root         120  0.0  0.0      0     0 ?        I<   Apr19   0:00 [ipv6_addrconf]
+root         124  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kworker/2:1H-kblockd]
+root         132  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kstrp]
+root         135  0.0  0.0      0     0 ?        I<   Apr19   0:00 [zswap-shrink]
+root         136  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kworker/u9:0]
+root         141  0.0  0.0      0     0 ?        I<   Apr19   0:00 [charger_manager]
+root         163  0.0  0.0      0     0 ?        I<   Apr19   0:01 [kworker/3:1H-kblockd]
+root         191  0.0  0.0      0     0 ?        I<   Apr19   0:00 [cryptd]
+root         258  0.0  0.0      0     0 ?        I<   Apr19   0:00 [raid5wq]
+root         305  0.0  0.0      0     0 ?        S    Apr19   0:31 [jbd2/vda2-8]
+root         306  0.0  0.0      0     0 ?        I<   Apr19   0:00 [ext4-rsv-conver]
+root         379  0.0  0.2  64412 18100 ?        S<s  Apr19   0:28 /lib/systemd/systemd-journald
+root         412  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kaluad]
+root         416  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kmpath_rdacd]
+root         417  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kmpathd]
+root         418  0.0  0.0      0     0 ?        I<   Apr19   0:00 [kmpath_handlerd]
+root         419  0.0  0.3 289308 27096 ?        SLsl Apr19   0:31 /sbin/multipathd -d -s
+root         423  0.0  0.0  26200  6432 ?        Ss   Apr19   0:00 /lib/systemd/systemd-udevd
+root         788  0.0  0.0      0     0 ?        I<   Apr19   0:00 [nfit]
+systemd+     852  0.0  0.0  16120  7152 ?        Ss   Apr19   0:00 /lib/systemd/systemd-networkd
+systemd+     854  0.0  0.1  25268 11580 ?        Ss   Apr19   0:13 /lib/systemd/systemd-resolved
+root         867  0.0  0.0   2812  1180 ?        Ss   Apr19   0:00 /usr/sbin/acpid
+root         869  0.0  0.0   6892  2904 ?        Ss   Apr19   0:03 /usr/sbin/cron -f -P
+message+     872  0.0  0.0   8876  4840 ?        Ss   Apr19   0:00 @dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+root         885  0.0  0.2  32760 18988 ?        Ss   Apr19   0:00 /usr/bin/python3 /usr/bin/networkd-dispatcher --run-startup-triggers
+root         889  0.0  0.0 234492  6648 ?        Ssl  Apr19   0:00 /usr/libexec/polkitd --no-debug
+syslog       894  0.0  0.0 222400  6212 ?        Ssl  Apr19   0:06 /usr/sbin/rsyslogd -n -iNONE
+root         904  0.0  0.6 1097352 47568 ?       Ssl  Apr19   0:26 /usr/lib/snapd/snapd
+ntp          911  0.0  0.0  76104  5920 ?        Ssl  Apr19   0:21 /usr/sbin/ntpd -p /var/run/ntpd.pid -g -u 113:118
+root         922  0.0  0.0  15520  7344 ?        Ss   Apr19   0:00 /lib/systemd/systemd-logind
+root         927  0.0  0.1 392544 11872 ?        Ssl  Apr19   0:00 /usr/libexec/udisks2/udisksd
+root         932  0.0  0.1  15424  8856 ?        Ss   Apr19   0:13 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+root         956  0.0  0.1 317940 11788 ?        Ssl  Apr19   0:00 /usr/sbin/ModemManager
+root        1004  0.0  0.1  37044  8148 ?        Sl   Apr19   1:22 /usr/local/qcloud/tat_agent/tat_agent
+root        1064  0.0  0.2 109752 21552 ?        Ssl  Apr19   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+root        1185  0.0  0.0   5796   976 ttyS0    Ss+  Apr19   0:00 /sbin/agetty -o -p -- \u --keep-baud 115200,57600,38400,9600 ttyS0 vt220
+root        1187  0.0  0.0   6172   940 tty1     Ss+  Apr19   0:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
+root        1722  0.0  0.1 1453396 10404 ?       Sl   Apr19   2:00 /usr/local/qcloud/YunJing/YDLive/YDLive
+root        1847  0.0  0.0  81224  3200 ?        Sl   Apr19   0:03 /usr/local/qcloud/stargate/bin/sgagent -d
+root        1907  0.0  0.1  42760  9232 ?        S    Apr19   0:05 barad_agent
+root        1908  0.0  0.1  45964 11448 ?        S    Apr19   6:33 barad_agent
+root        1909  0.5  0.2 630304 19020 ?        Sl   Apr19  55:00 barad_agent
+root        2005  0.8  1.0 995864 79796 ?        Sl   Apr19  81:25 /usr/local/qcloud/YunJing/YDEyes/YDService
+root        2118  0.0  0.1 1453116 8088 ?        Sl   Apr19   1:32 /bin/sh -c sleep 100
+root        6419  0.0  0.1 239476  8088 ?        Ssl  Apr19   0:00 /usr/libexec/upowerd
+root      313028  0.0  0.2 295600 18592 ?        Ssl  Apr20   0:01 /usr/libexec/packagekitd
+ubuntu   1568952  0.0  0.1  17088  9688 ?        Ss   Apr23   0:00 /lib/systemd/systemd --user
+ubuntu   1568953  0.0  0.0 169612  4260 ?        S    Apr23   0:00 (sd-pam)
+ubuntu   1569281  0.0  0.0   8944  5864 pts/4    Ss+  Apr23   0:00 /bin/bash --init-file /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/out/vs/workbench/contrib/terminal/browser/media/shellIntegration-bash.sh
+ubuntu   1573670  0.0  0.0   8944  5732 pts/5    Ss+  Apr23   0:00 /bin/bash --init-file /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/out/vs/workbench/contrib/terminal/browser/media/shellIntegration-bash.sh
+fwupd-r+ 1635132  0.0  0.3 511888 23120 ?        Ssl  Apr23   0:08 /usr/bin/fwupdmgr refresh
+ubuntu   1719228  0.0  0.0   7316  2620 ?        Ss   Apr23   0:00 SCREEN -S jiki
+ubuntu   1719229  0.0  0.0   8692  5540 pts/13   Ss+  Apr23   0:00 /bin/bash
+root     1793599  0.0  0.0      0     0 ?        I    Apr24   0:03 [kworker/3:0-cgroup_destroy]
+root     1919738  0.0  0.0      0     0 ?        I    Apr24   0:03 [kworker/2:0-events]
+root     2112944  0.0  0.0      0     0 ?        I    Apr24   0:04 [kworker/0:1-cgroup_destroy]
+root     2224213  0.0  0.0      0     0 ?        I    06:03   0:01 [kworker/0:0-mm_percpu_wq]
+root     2290927  0.0  0.0      0     0 ?        I    10:30   0:00 [kworker/3:1-mm_percpu_wq]
+root     2290931  0.0  0.0      0     0 ?        I    10:30   0:00 [kworker/1:2]
+root     2405792  0.0  0.0      0     0 ?        I    18:21   0:00 [kworker/u8:2-flush-252:0]
+ubuntu   2407961  0.0  0.0   2888  1008 ?        S    18:29   0:00 sh /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/bin/code-server --start-server --host=127.0.0.1 --accept-server-license-terms --enable-remote-auto-shutdown --port=0 --telemetry-level off --install-extension gitpod.gitpod-remote-ssh --connection-token-file /home/ubuntu/.vscode-server/.704ed70d4fd1c6bd6342c436f1ede30d1cff4710.token
+ubuntu   2407970  0.3  1.1 947784 88356 ?        Sl   18:29   0:07 /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/node /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/out/server-main.js --start-server --host=127.0.0.1 --accept-server-license-terms --enable-remote-auto-shutdown --port=0 --telemetry-level off --install-extension gitpod.gitpod-remote-ssh --connection-token-file /home/ubuntu/.vscode-server/.704ed70d4fd1c6bd6342c436f1ede30d1cff4710.token
+ubuntu   2408009  0.1  0.7 725232 59260 ?        Rl   18:29   0:03 /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/node /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/out/bootstrap-fork --type=ptyHost --logsPath /home/ubuntu/.vscode-server/data/logs/20230425T182910
+ubuntu   2408233  0.4  1.7 997740 129484 ?       Sl   18:29   0:10 /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/node /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+ubuntu   2408244  0.3  0.8 836136 62844 ?        Sl   18:29   0:07 /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/node /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/out/bootstrap-fork --type=fileWatcher
+ubuntu   2408286  5.3 17.5 2090084 1336852 ?     Sl   18:29   2:10 /home/ubuntu/.vscode-server/extensions/ms-vscode.cpptools-1.14.5/bin/cpptools
+ubuntu   2408304  0.0  0.5 589552 40304 ?        Sl   18:29   0:00 /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/node /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/extensions/json-language-features/server/dist/node/jsonServerMain --node-ipc --clientProcessId=2408233
+ubuntu   2408445  0.0  0.0   8944  5876 pts/15   Ss   18:29   0:00 /bin/bash --init-file /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/out/vs/workbench/contrib/terminal/browser/media/shellIntegration-bash.sh
+root     2409119  0.0  0.1  17044 10780 ?        Ss   18:31   0:00 sshd: ubuntu [priv]
+ubuntu   2409175  0.0  0.1  17740  8560 ?        S    18:31   0:01 sshd: ubuntu@notty
+ubuntu   2409176  0.0  0.0   7632  4020 ?        Ss   18:31   0:00 bash
+ubuntu   2410833  0.0  0.0   8944  5788 pts/17   Ss+  18:34   0:00 /bin/bash --init-file /home/ubuntu/.vscode-server/bin/704ed70d4fd1c6bd6342c436f1ede30d1cff4710/out/vs/workbench/contrib/terminal/browser/media/shellIntegration-bash.sh
+root     2412539  0.0  0.0      0     0 ?        I    18:40   0:00 [kworker/u8:0-events_unbound]
+ubuntu   2414682  0.0  0.2 4951416 20120 ?       Sl   18:48   0:00 /home/ubuntu/.vscode-server/extensions/ms-vscode.cpptools-1.14.5/bin/cpptools-srv 2408286 {3C95CBD0-C265-4F72-B083-97D06DA3B5DB}
+root     2414705  0.0  0.0      0     0 ?        I    18:48   0:00 [kworker/2:2]
+ubuntu   2415216  0.0  0.8 4951416 62652 ?       Sl   18:50   0:01 /home/ubuntu/.vscode-server/extensions/ms-vscode.cpptools-1.14.5/bin/cpptools-srv 2408286 {5365E11D-F830-4650-B3DE-DF15D589F331}
+root     2417296  0.0  0.0      0     0 ?        I    18:58   0:00 [kworker/1:0-events]
+ubuntu   2418043  0.0  0.2 4951548 15740 ?       Sl   19:01   0:00 /home/ubuntu/.vscode-server/extensions/ms-vscode.cpptools-1.14.5/bin/cpptools-srv 2408286 {1565CEA2-2195-4876-8B93-A32756FE584A}
+root     2419552  0.0  0.0      0     0 ?        I    19:07   0:00 [kworker/u8:1-events_unbound]
+ubuntu   2420216  0.0  0.0   2776  1600 pts/15   S+   19:09   0:00 ./shell
+root     2420249  0.0  0.0      0     0 ?        I    19:09   0:00 [kworker/u8:3]
+ubuntu   2420503  0.0  0.0   5768  1056 ?        S    19:10   0:00 sleep 180
+ubuntu   2420522  0.0  0.0  10068  1548 pts/15   R+   19:10   0:00 ps aux
+hello

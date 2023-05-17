@@ -1,0 +1,17 @@
+cd ~
+cd oslab
+-> sleep 114
+ps aux | grep 114
+kill <PID> [SIG]
+exit
+
+ls
+ls -la --color=auto
+cat testcases.txt
+rm test.txt
+ls
+ps aux > test.txt
+echo hello >> test.txt; grep shell < test.txt
+ps aux | wc -l
+cat test.txt | grep hello
+<Ctrl + D>
