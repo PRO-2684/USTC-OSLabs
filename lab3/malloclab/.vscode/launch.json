@@ -11,7 +11,7 @@
             "environment": [
                 {
                     "name": "LD_LIBRARY_PATH",
-                    "value": "/home/ubuntu/oslab/lab3/malloclab/:"
+                    "value": "/home/ubuntu/USTC-OSLabs/lab3/malloclab/:"
                 }
             ],
             "externalConsole": false,
