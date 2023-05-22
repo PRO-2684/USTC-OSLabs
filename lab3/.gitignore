@@ -1,0 +1,11 @@
+P2/trace/*.txt
+P2/trace/lab3_workload
+P2/*.o
+P2/*.mod
+P2/*.ko
+P2/*.mod.c
+P2/.*.cmd
+P2/.tmp_versions
+P2/*.order
+P2/*.symvers
+P2/expr_result_*

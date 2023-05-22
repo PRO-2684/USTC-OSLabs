@@ -47,7 +47,7 @@ MODULE_DESCRIPTION("KTEST!");
 MODULE_VERSION("1.0");
 
 // 定义要输出的文件
-#define OUTPUT_FILE "/home/yll/lab3/part2/expr_result.txt"
+#define OUTPUT_FILE "/home/ubuntu/USTC-OSLabs/lab3/P2/expr_result.txt"
 struct file* log_file = NULL;
 char str_buf[64];     // 暂存数据
 char buf[PAGE_SIZE];  // 全局变量，用来缓存要写入到文件中的内容
@@ -59,9 +59,9 @@ typedef typeof(follow_page)* my_follow_page;
 // typedef typeof(follow_page_mask) *my_follow_page_mask;
 
 // sudo cat /proc/kallsyms | grep page_referenced
-static my_page_referenced mpage_referenced = (my_page_referenced)0xffffffffa06b0780;
+static my_page_referenced mpage_referenced = (my_page_referenced)0xffffffffb5512b10;
 // sudo cat /proc/kallsyms | grep follow_page
-static my_follow_page mfollow_page = (my_follow_page)0xffffffffa0694160;
+static my_follow_page mfollow_page = (my_follow_page)0xffffffffb54f4240;
 // follow_page 在具体实现时会调用 follow_page_mask 函数。
 // 在不同的内核版本中，follow_page 不一定可以被访问。
 // 经测试发现，在 Linux 4.9.263 中，无法使用 follow_page 函数，但是可以使用 follow_page_mask
@@ -159,7 +159,7 @@ static void scan_vma(void) {
     printk("func == 1, %s\n", __func__);
     struct mm_struct* mm = get_task_mm(my_task_info.task);
     if (mm) {
-        // FIXME: 遍历 VMA 将 VMA 的个数记录到 my_task_info 的 vma_cnt 变量中
+        // 遍历 VMA 将 VMA 的个数记录到 my_task_info 的 vma_cnt 变量中
         int cnt = 0;
         struct vm_area_struct* node = mm->mmap;
         while (node != NULL) {
@@ -204,6 +204,7 @@ static void traverse_page_table(struct task_struct* task) {
     struct mm_struct* mm = get_task_mm(my_task_info.task);
     if (mm) {
         // TODO: 遍历 VMA，并以 PAGE_SIZE 为粒度逐个遍历 VMA 中的虚拟地址，然后进行页表遍历
+        unsigned long virt_addr = 114;
         record_two_data(virt_addr, virt2phys(task->mm, virt_addr));
         mmput(mm);
     } else {
@@ -287,8 +288,7 @@ static int ktestd_thread(void* nothing) {
     // 一直判断 ktestd_thread 是否应该运行，根据用户对 ktestrun 的指定
     while (!kthread_should_stop()) {
         mutex_lock(&ktest_thread_mutex);
-        if (ktestd_should_run())  // 如果 ktestd_thread 应该处于运行状态
-        {
+        if (ktestd_should_run()) { // 如果 ktestd_thread 应该处于运行状态
             // 判断文件描述符是否为 NULL
             if (IS_ERR_OR_NULL(log_file)) {
                 // 打开文件
@@ -308,8 +308,7 @@ static int ktestd_thread(void* nothing) {
             // 周期性 sleep
             schedule_timeout_interruptible(
                 msecs_to_jiffies(ktest_thread_sleep_millisecs));
-        } else {
-            // 挂起线程
+        } else { // 挂起线程
             wait_event_freezable(ktest_thread_wait,
                                  ktestd_should_run() || kthread_should_stop());
         }
