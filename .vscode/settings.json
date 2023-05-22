@@ -8,7 +8,8 @@
         "pgtable.h": "c",
         "pgtable_64.h": "c",
         "fixmap.h": "c",
-        "segment.h": "c"
+        "segment.h": "c",
+        "numeric": "c"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

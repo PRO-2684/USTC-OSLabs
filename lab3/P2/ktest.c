@@ -56,19 +56,11 @@ size_t curr_buf_length = 0;  // 缓冲偏移
 
 typedef typeof(page_referenced)* my_page_referenced;
 typedef typeof(follow_page)* my_follow_page;
-// typedef typeof(follow_page_mask) *my_follow_page_mask;
 
 // sudo cat /proc/kallsyms | grep page_referenced
 static my_page_referenced mpage_referenced = (my_page_referenced)0xffffffffb5512b10;
 // sudo cat /proc/kallsyms | grep follow_page
 static my_follow_page mfollow_page = (my_follow_page)0xffffffffb54f4240;
-// follow_page 在具体实现时会调用 follow_page_mask 函数。
-// 在不同的内核版本中，follow_page 不一定可以被访问。
-// 经测试发现，在 Linux 4.9.263 中，无法使用 follow_page 函数，但是可以使用 follow_page_mask
-// 同学们如果在执行 "sudo cat /proc/kallsyms | grep follow_page" 无法得到 follow_page 的地址时
-// 可以考虑使用 follow_page_mask 函数
-// sudo cat /proc/kallsyms | grep follow_page_mask
-// static mfollow_page_mask = (my_follow_page_mask)0xffffffff85e93dd0;
 
 // 进程的 pid
 static unsigned int pid = 0;
@@ -174,37 +166,70 @@ static void scan_vma(void) {
 // func == 2
 static void print_mm_active_info(void) {
     printk("func == 2, %s\n", __func__);
-    // TODO: 1. 遍历 VMA，并根据 VMA 的虚拟地址得到对应的 struct page 结构体（使用 mfollow_page 函数）
+    // FIXME:
+    // 1. 遍历 VMA，并根据 VMA 的虚拟地址得到对应的 struct page 结构体（使用 mfollow_page 函数）
     // struct page *page = mfollow_page(vma, virt_addr, FOLL_GET);
     // unsigned int unused_page_mask;
     // struct page *page = mfollow_page_mask(vma, virt_addr, FOLL_GET, &unused_page_mask);
+    // 2. 使用 page_referenced 活跃页面是否被访问，并将被访问的页面物理地址写到文件中
+    // unsigned long vm_flags;
+    // int freq = mpage_referenced(page, 0, (struct mem_cgroup *)(page->memcg_data), &vm_flags);
     struct mm_struct* mm = get_task_mm(my_task_info.task);
     if (mm) {
         // 遍历 VMA
         struct vm_area_struct* vma = mm->mmap;
-        while (vma != NULL) {
-            vma = vma->vm_next;
+        struct page* page;
+        unsigned long virt_addr;
+        unsigned long vm_flags;
+        while (vma != NULL) {  // Walk through vmas
+            virt_addr = vma->vm_start;
+            while (virt_addr < vma->vm_end) { // Walk through pages
+                page = mfollow_page(vma, virt_addr, FOLL_GET); // Get page at virt_addr
+                if (!IS_ERR_OR_NULL(page)) {
+                    int freq = mpage_referenced(page, 0, (struct mem_cgroup *)(page->memcg_data), &vm_flags);
+                    if (freq != 0) record_one_data((page_to_pfn(page) << 12) | (virt_addr & ~PAGE_MASK)); // Record physical addr
+                }
+                virt_addr += PAGE_SIZE; // Get next virt_addr
+            }
+            vma = vma->vm_next; // Get next vma
         }
+        flush_buf(1); // Newline
         mmput(mm);
     }
-    // TODO: 2. 使用 page_referenced 活跃页面是否被访问，并将被访问的页面物理地址写到文件中
-    // kernel v5.13.0-40 及之后可尝试 ✓
-    // unsigned long vm_flags;
-    // int freq = mpage_referenced(page, 0, (struct mem_cgroup *)(page->memcg_data), &vm_flags);
-    // kernel v5.9.0
-    // unsigned long vm_flags;
-    // int freq = mpage_referenced(page, 0, page->mem_cgroup, &vm_flags);
 }
 
 static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
-    struct page* page = NULL;
     // TODO: 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
-    if (page) {
-        return page_to_pfn(page);
-    } else {
-        pr_err("func: %s page is NULL\n", __func__);
+    unsigned long phys;
+    pgd_t* pgd_tmp = NULL;
+    pud_t *pud_tmp = NULL;
+    pmd_t *pmd_tmp = NULL;
+    pte_t *pte_tmp = NULL;
+    pgd_tmp = pgd_offset(mm, virt);
+    if (pgd_none(*pgd_tmp)) {
+        pr_info("func: %s pgd none\n", __func__);
         return NULL;
     }
+    pud_tmp = pud_offset((p4d_t *)(pgd_tmp), virt);
+    if (pud_none(*pud_tmp)) {
+        pr_info("func: %s pud none\n", __func__);
+        return NULL;
+    }
+    pmd_tmp = pmd_offset(pud_tmp, virt);
+    if (pmd_none(*pmd_tmp)) {
+        pr_info("func: %s pmd none\n", __func__);
+        return NULL;
+    }
+    pte_tmp = pte_offset_kernel(pmd_tmp, virt);
+    if (pte_none(*pte_tmp)) {
+        pr_info("func: %s pte none\n", __func__);
+        return NULL;
+    }
+    phys = (pte_tmp->pte & PAGE_MASK) | (virt & ~PAGE_MASK);
+    struct page* page = mfollow_page(mm->mmap, virt, FOLL_GET);
+    if ((pte_tmp->pte & PAGE_MASK) != (page_to_pfn(page) << 12))
+        pr_err("func: %s Not equal!\n", __func__);
+    return phys;
 }
 
 // func = 3
