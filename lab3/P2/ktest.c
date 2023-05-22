@@ -166,7 +166,6 @@ static void scan_vma(void) {
 // func == 2
 static void print_mm_active_info(void) {
     printk("func == 2, %s\n", __func__);
-    // FIXME:
     // 1. 遍历 VMA，并根据 VMA 的虚拟地址得到对应的 struct page 结构体（使用 mfollow_page 函数）
     // struct page *page = mfollow_page(vma, virt_addr, FOLL_GET);
     // unsigned int unused_page_mask;
@@ -199,7 +198,7 @@ static void print_mm_active_info(void) {
 }
 
 static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
-    // TODO: 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
+    // FIXME: 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
     unsigned long phys;
     pgd_t* pgd_tmp = NULL;
     pud_t *pud_tmp = NULL;
@@ -235,12 +234,25 @@ static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
 // func = 3
 static void traverse_page_table(struct task_struct* task) {
     printk("func == 3, %s\n", __func__);
-    struct mm_struct* mm = get_task_mm(my_task_info.task);
+    // struct mm_struct* mm = get_task_mm(my_task_info.task);
+    struct mm_struct* mm = task->mm;
     if (mm) {
         // TODO: 遍历 VMA，并以 PAGE_SIZE 为粒度逐个遍历 VMA 中的虚拟地址，然后进行页表遍历
-        unsigned long virt_addr = 114;
-        record_two_data(virt_addr, virt2phys(task->mm, virt_addr));
+        struct vm_area_struct* vma = mm->mmap;
+        struct page* page;
+        unsigned long virt_addr;
+        unsigned long vm_flags;
+        while (vma != NULL) {  // Walk through vmas
+            virt_addr = vma->vm_start;
+            while (virt_addr < vma->vm_end) { // Walk through pages
+                record_two_data(virt_addr, virt2phys(mm, virt_addr));
+                virt_addr += PAGE_SIZE; // Get next virt_addr
+            }
+            vma = vma->vm_next; // Get next vma
+        }
+        flush_buf(1); // Newline
         mmput(mm);
+        // record_two_data(virt_addr, virt2phys(task->mm, virt_addr));
     } else {
         pr_err("func: %s mm_struct is NULL\n", __func__);
     }
