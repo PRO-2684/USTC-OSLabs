@@ -161,10 +161,10 @@ static void scan_vma(void) {
     if (mm) {
         // 遍历 VMA 将 VMA 的个数记录到 my_task_info 的 vma_cnt 变量中
         int cnt = 0;
-        struct vm_area_struct* node = mm->mmap;
-        while (node != NULL) {
+        struct vm_area_struct* vma = mm->mmap;
+        while (vma != NULL) {
             cnt++;
-            node = node->vm_next;
+            vma = vma->vm_next;
         }
         my_task_info.vma_cnt = cnt;
         mmput(mm);
@@ -178,8 +178,17 @@ static void print_mm_active_info(void) {
     // struct page *page = mfollow_page(vma, virt_addr, FOLL_GET);
     // unsigned int unused_page_mask;
     // struct page *page = mfollow_page_mask(vma, virt_addr, FOLL_GET, &unused_page_mask);
+    struct mm_struct* mm = get_task_mm(my_task_info.task);
+    if (mm) {
+        // 遍历 VMA
+        struct vm_area_struct* vma = mm->mmap;
+        while (vma != NULL) {
+            vma = vma->vm_next;
+        }
+        mmput(mm);
+    }
     // TODO: 2. 使用 page_referenced 活跃页面是否被访问，并将被访问的页面物理地址写到文件中
-    // kernel v5.13.0-40 及之后可尝试
+    // kernel v5.13.0-40 及之后可尝试 ✓
     // unsigned long vm_flags;
     // int freq = mpage_referenced(page, 0, (struct mem_cgroup *)(page->memcg_data), &vm_flags);
     // kernel v5.9.0
