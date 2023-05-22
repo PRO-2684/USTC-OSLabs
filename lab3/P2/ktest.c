@@ -51,7 +51,7 @@ MODULE_VERSION("1.0");
 struct file* log_file = NULL;
 char str_buf[64];     // 暂存数据
 char buf[PAGE_SIZE];  // 全局变量，用来缓存要写入到文件中的内容
-// 记录当前写到buf的哪一个位置
+// 记录当前写到 buf 的哪一个位置
 size_t curr_buf_length = 0;  // 缓冲偏移
 
 typedef typeof(page_referenced)* my_page_referenced;
@@ -62,15 +62,15 @@ typedef typeof(follow_page)* my_follow_page;
 static my_page_referenced mpage_referenced = (my_page_referenced)0xffffffffa06b0780;
 // sudo cat /proc/kallsyms | grep follow_page
 static my_follow_page mfollow_page = (my_follow_page)0xffffffffa0694160;
-// follow_page在具体实现时会调用follow_page_mask函数。
-// 在不同的内核版本中，follow_page不一定可以被访问。
-// 经测试发现，在Linux 4.9.263中，无法使用follow_page函数，但是可以使用follow_page_mask
-// 同学们如果在执行"sudo cat /proc/kallsyms | grep follow_page"无法得到follow_page的地址时
-// 可以考虑使用follow_page_mask函数
+// follow_page 在具体实现时会调用 follow_page_mask 函数。
+// 在不同的内核版本中，follow_page 不一定可以被访问。
+// 经测试发现，在 Linux 4.9.263 中，无法使用 follow_page 函数，但是可以使用 follow_page_mask
+// 同学们如果在执行 "sudo cat /proc/kallsyms | grep follow_page" 无法得到 follow_page 的地址时
+// 可以考虑使用 follow_page_mask 函数
 // sudo cat /proc/kallsyms | grep follow_page_mask
 // static mfollow_page_mask = (my_follow_page_mask)0xffffffff85e93dd0;
 
-// 进程的pid
+// 进程的 pid
 static unsigned int pid = 0;
 
 // sysfs
@@ -87,7 +87,7 @@ static unsigned int ktest_thread_sleep_millisecs = 5000;
 static struct task_struct* ktest_thread;
 static DECLARE_WAIT_QUEUE_HEAD(ktest_thread_wait);
 
-// 保护kpap_run变量
+// 保护 kpap_run 变量
 static DEFINE_MUTEX(ktest_thread_mutex);
 
 static struct task_info my_task_info;
@@ -117,7 +117,7 @@ static inline void write_to_file(void* buffer, size_t length) {
 #endif
 }
 
-// 将全局变量buf中的内容写入到文件中
+// 将全局变量 buf 中的内容写入到文件中
 static void flush_buf(int end_flag) {
     if (IS_ERR(log_file)) {
         printk(KERN_ERR "error when flush_buf %s, exit\n", OUTPUT_FILE);
@@ -125,7 +125,7 @@ static void flush_buf(int end_flag) {
     }
 
     if (end_flag == 1) {
-        if (likely(curr_buf_length > 0))
+        if (likely(curr_buf_length> 0))
             buf[curr_buf_length - 1] = '\n';
         else
             buf[curr_buf_length++] = '\n';
@@ -136,7 +136,7 @@ static void flush_buf(int end_flag) {
     memset(buf, 0, PAGE_SIZE);
 }
 
-// 写一个unsigned long型的数据到全局变量buf中
+// 写一个 unsigned long 型的数据到全局变量 buf 中
 static void record_one_data(unsigned long data) {
     sprintf(str_buf, "%lu,", data);
     sprintf(buf + curr_buf_length, "%lu,", data);
@@ -145,7 +145,7 @@ static void record_one_data(unsigned long data) {
         flush_buf(0);
 }
 
-// 写两个unsigned long中的数据到全局变量buf中
+// 写两个 unsigned long 中的数据到全局变量 buf 中
 static void record_two_data(unsigned long data1, unsigned long data2) {
     sprintf(str_buf, "0x%lx--0x%lx\n", data1, data2);
     sprintf(buf + curr_buf_length, "0x%lx--0x%lx\n", data1, data2);
@@ -159,8 +159,14 @@ static void scan_vma(void) {
     printk("func == 1, %s\n", __func__);
     struct mm_struct* mm = get_task_mm(my_task_info.task);
     if (mm) {
-        // TODO:遍历VMA将VMA的个数记录到my_task_info的vma_cnt变量中
-
+        // FIXME: 遍历 VMA 将 VMA 的个数记录到 my_task_info 的 vma_cnt 变量中
+        int cnt = 0;
+        struct vm_area_struct* node = mm->mmap;
+        while (node != NULL) {
+            cnt++;
+            node = node->vm_next;
+        }
+        my_task_info.vma_cnt = cnt;
         mmput(mm);
     }
 }
@@ -168,12 +174,12 @@ static void scan_vma(void) {
 // func == 2
 static void print_mm_active_info(void) {
     printk("func == 2, %s\n", __func__);
-    // TODO: 1. 遍历VMA，并根据VMA的虚拟地址得到对应的struct page结构体（使用mfollow_page函数）
+    // TODO: 1. 遍历 VMA，并根据 VMA 的虚拟地址得到对应的 struct page 结构体（使用 mfollow_page 函数）
     // struct page *page = mfollow_page(vma, virt_addr, FOLL_GET);
     // unsigned int unused_page_mask;
     // struct page *page = mfollow_page_mask(vma, virt_addr, FOLL_GET, &unused_page_mask);
-    // TODO: 2. 使用page_referenced活跃页面是否被访问，并将被访问的页面物理地址写到文件中
-    // kernel v5.13.0-40及之后可尝试
+    // TODO: 2. 使用 page_referenced 活跃页面是否被访问，并将被访问的页面物理地址写到文件中
+    // kernel v5.13.0-40 及之后可尝试
     // unsigned long vm_flags;
     // int freq = mpage_referenced(page, 0, (struct mem_cgroup *)(page->memcg_data), &vm_flags);
     // kernel v5.9.0
@@ -183,7 +189,7 @@ static void print_mm_active_info(void) {
 
 static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
     struct page* page = NULL;
-    // TODO: 多级页表遍历：pgd->pud->pmd->pte，然后从pte到page，最后得到pfn
+    // TODO: 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
     if (page) {
         return page_to_pfn(page);
     } else {
@@ -197,8 +203,8 @@ static void traverse_page_table(struct task_struct* task) {
     printk("func == 3, %s\n", __func__);
     struct mm_struct* mm = get_task_mm(my_task_info.task);
     if (mm) {
-        // TODO:遍历VMA，并以PAGE_SIZE为粒度逐个遍历VMA中的虚拟地址，然后进行页表遍历
-        // record_two_data(virt_addr, virt2phys(task->mm, virt_addr));
+        // TODO: 遍历 VMA，并以 PAGE_SIZE 为粒度逐个遍历 VMA 中的虚拟地址，然后进行页表遍历
+        record_two_data(virt_addr, virt2phys(task->mm, virt_addr));
         mmput(mm);
     } else {
         pr_err("func: %s mm_struct is NULL\n", __func__);
@@ -216,11 +222,11 @@ static void print_seg_info(void) {
         return;
     }
     // TODO: 根据数据段或者代码段的起始地址和终止地址得到其中的页面，然后打印页面内容到文件中
-    // 相关提示：可以使用follow_page函数得到虚拟地址对应的page，然后使用addr=kmap_atomic(page)得到可以直接
-    //          访问的虚拟地址，然后就可以使用memcpy函数将数据段或代码段拷贝到全局变量buf中以写入到文件中
-    //          注意：使用kmap_atomic(page)结束后还需要使用kunmap_atomic(addr)来进行释放操作
-    //          正确结果：如果是运行实验提供的workload，这一部分数据段应该会打印出char *trace_data，
-    //                   static char global_data[100]和char hamlet_scene1[8276]的内容。
+    // 相关提示：可以使用 follow_page 函数得到虚拟地址对应的 page，然后使用 addr=kmap_atomic(page) 得到可以直接
+    //          访问的虚拟地址，然后就可以使用 memcpy 函数将数据段或代码段拷贝到全局变量 buf 中以写入到文件中
+    //          注意：使用 kmap_atomic(page) 结束后还需要使用 kunmap_atomic(addr) 来进行释放操作
+    //          正确结果：如果是运行实验提供的 workload，这一部分数据段应该会打印出 char *trace_data，
+    //                   static char global_data[100] 和 char hamlet_scene1[8276] 的内容。
     mmput(mm);
 }
 
@@ -229,7 +235,7 @@ static int ktestd_should_run(void) {
     return (ktest_run & KTEST_RUN_START);
 }
 
-// 根据进程PID得到该PID对应的进程描述符task_struct
+// 根据进程 PID 得到该 PID 对应的进程描述符 task_struct
 static struct task_struct* pid_to_task(int pid_n) {
     struct pid* pid;
     struct task_struct* task;
@@ -245,7 +251,7 @@ static struct task_struct* pid_to_task(int pid_n) {
     return task;
 }
 
-// 用于确定内核线程周期性要做的事情。实验要求的5个func在此函数中被调用
+// 用于确定内核线程周期性要做的事情。实验要求的 5 个 func 在此函数中被调用
 static void ktest_to_do(void) {
     my_task_info.vma_cnt = 0;
     memset(&(my_task_info.page_cnt), 0, sizeof(struct task_cnt));
@@ -254,7 +260,7 @@ static void ktest_to_do(void) {
             printk("hello world!");
             break;
         case 1:
-            // 扫描VMA，并进行计数
+            // 扫描 VMA，并进行计数
             scan_vma();
             break;
         case 2:
@@ -278,12 +284,12 @@ static void ktest_to_do(void) {
 static int ktestd_thread(void* nothing) {
     set_freezable();
     set_user_nice(current, 5);
-    // 一直判断ktestd_thread是否应该运行，根据用户对ktestrun的指定
+    // 一直判断 ktestd_thread 是否应该运行，根据用户对 ktestrun 的指定
     while (!kthread_should_stop()) {
         mutex_lock(&ktest_thread_mutex);
-        if (ktestd_should_run())  // 如果ktestd_thread应该处于运行状态
+        if (ktestd_should_run())  // 如果 ktestd_thread 应该处于运行状态
         {
-            // 判断文件描述符是否为NULL
+            // 判断文件描述符是否为 NULL
             if (IS_ERR_OR_NULL(log_file)) {
                 // 打开文件
                 log_file = filp_open(OUTPUT_FILE, O_RDWR | O_APPEND | O_CREAT, 0666);
@@ -292,14 +298,14 @@ static int ktestd_thread(void* nothing) {
                     goto next_loop;
                 }
             }
-            // 调用ktest_to_do函数，实际上就是根据用户指定的func参数来完成相应的任务
+            // 调用 ktest_to_do 函数，实际上就是根据用户指定的 func 参数来完成相应的任务
             ktest_to_do();
         }
     next_loop:
         mutex_unlock(&ktest_thread_mutex);
         try_to_freeze();
         if (ktestd_should_run()) {
-            // 周期性sleep
+            // 周期性 sleep
             schedule_timeout_interruptible(
                 msecs_to_jiffies(ktest_thread_sleep_millisecs));
         } else {
@@ -310,7 +316,7 @@ static int ktestd_thread(void* nothing) {
     }
     return 0;
 }
-// sysfs文件相关的函数，无需改动。
+// sysfs 文件相关的函数，无需改动。
 #ifdef CONFIG_SYSFS
 /*
  * This all compiles without CONFIG_SYSFS, but is a waste of space.
@@ -336,7 +342,7 @@ static ssize_t sleep_millisecs_store(struct kobject* kobj,
     int err;
 
     err = kstrtoul(buf, 10, &msecs);
-    if (err || msecs > UINT_MAX)
+    if (err || msecs> UINT_MAX)
         return -EINVAL;
 
     ktest_thread_sleep_millisecs = msecs;
@@ -359,12 +365,12 @@ static ssize_t pid_store(struct kobject* kobj,
     int err;
 
     err = kstrtoul(buf, 10, &tmp);
-    if (err || tmp > UINT_MAX)
+    if (err || tmp> UINT_MAX)
         return -EINVAL;
 
     if (pid != tmp) {
         pid = tmp;
-        // 根据用户传入的PID获取进程的任务描述符（即task_struct）信息
+        // 根据用户传入的 PID 获取进程的任务描述符（即 task_struct）信息
         my_task_info.task = pid_to_task(pid);
     }
     return count;
@@ -385,7 +391,7 @@ static ssize_t func_store(struct kobject* kobj,
     int err;
 
     err = kstrtoul(buf, 10, &tmp);
-    if (err || tmp > UINT_MAX)
+    if (err || tmp> UINT_MAX)
         return -EINVAL;
 
     ktest_func = tmp;
@@ -408,7 +414,7 @@ static ssize_t vma_store(struct kobject* kobj,
     int err;
 
     err = kstrtoul(buf, 10, &tmp);
-    if (err || tmp > UINT_MAX)
+    if (err || tmp> UINT_MAX)
         return -EINVAL;
     printk("not supported to set vma count!");
 
@@ -424,9 +430,9 @@ static ssize_t ktestrun_store(struct kobject* kobj, struct kobj_attribute* attr,
     int err;
     unsigned long flags;
     err = kstrtoul(buf, 10, &flags);
-    if (err || flags > UINT_MAX)
+    if (err || flags> UINT_MAX)
         return -EINVAL;
-    if (flags > KTEST_RUN_START)
+    if (flags> KTEST_RUN_START)
         return -EINVAL;
     mutex_lock(&ktest_thread_mutex);
     if (ktest_run != flags) {
@@ -436,7 +442,7 @@ static ssize_t ktestrun_store(struct kobject* kobj, struct kobj_attribute* attr,
         }
     }
     mutex_unlock(&ktest_thread_mutex);
-    // 如果用户要求运行ktestd_thread线程，在唤醒被挂起的ktestd_thread
+    // 如果用户要求运行 ktestd_thread 线程，在唤醒被挂起的 ktestd_thread
     if (flags & KTEST_RUN_START)
         wake_up_interruptible(&ktest_thread_wait);
     return count;
@@ -460,7 +466,7 @@ static struct attribute_group ktest_attr_group = {
 
 static int __init ktest_init(void) {
     int err;
-    // 创建一个内核线程，线程要做的事情在ktestd_thread
+    // 创建一个内核线程，线程要做的事情在 ktestd_thread
     ktest_thread = kthread_run(ktestd_thread, NULL, "ktest");
     if (IS_ERR(ktest_thread)) {
         pr_err("ktest: creating kthread failed\n");
@@ -469,7 +475,7 @@ static int __init ktest_init(void) {
     }
 
 #ifdef CONFIG_SYSFS
-    // 创建sysfs系统，并将其挂载到/sys/kernel/mm/下
+    // 创建 sysfs 系统，并将其挂载到 / sys/kernel/mm / 下
     err = sysfs_create_group(mm_kobj, &ktest_attr_group);
     if (err) {
         pr_err("ktest: register sysfs failed\n");

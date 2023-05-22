@@ -6,8 +6,8 @@ else
     func_no=${1}
 fi
 echo "1. disable transparent huge"
-sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
-sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/defrag"
+sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled" # Default "always [madvise] never"
+sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/defrag" # Default "always defer defer+madvise [madvise] never"
 workload_pid=$(ps -ef | grep lab3_workload | grep -v grep | awk '{print $2}')
 if [[ ! -z "${workload_pid}" ]]; then
     sudo kill -9 ${workload_pid}
