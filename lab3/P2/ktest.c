@@ -233,13 +233,13 @@ static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
     }
 }
 
-// func = 3
+// FIXME: func = 3
 static void traverse_page_table(struct task_struct* task) {
     printk("func == 3, %s\n", __func__);
     // struct mm_struct* mm = get_task_mm(my_task_info.task);
     struct mm_struct* mm = get_task_mm(task);
     if (mm) {
-        // FIXME: 遍历 VMA，并以 PAGE_SIZE 为粒度逐个遍历 VMA 中的虚拟地址，然后进行页表遍历
+        // 遍历 VMA，并以 PAGE_SIZE 为粒度逐个遍历 VMA 中的虚拟地址，然后进行页表遍历
         struct vm_area_struct* vma = mm->mmap;
         unsigned long virt_addr;
         unsigned long vm_flags;
@@ -248,9 +248,7 @@ static void traverse_page_table(struct task_struct* task) {
             while (virt_addr < vma->vm_end) { // Walk through pages
                 record_two_data(virt_addr, virt2phys(mm, virt_addr));
                 virt_addr += PAGE_SIZE; // Get next virt_addr
-                // break;
             }
-            // break;
             vma = vma->vm_next; // Get next vma
         }
         flush_buf(1); // Newline
