@@ -54,9 +54,9 @@ typedef typeof(page_referenced)* my_page_referenced;
 typedef typeof(follow_page)* my_follow_page;
 
 // sudo cat /proc/kallsyms | grep page_referenced
-static my_page_referenced mpage_referenced = (my_page_referenced)0xffffffffaa712b10;
+static my_page_referenced mpage_referenced = (my_page_referenced)0xffffffff87112b10;
 // sudo cat /proc/kallsyms | grep follow_page
-static my_follow_page mfollow_page = (my_follow_page)0xffffffffaa6f4240;
+static my_follow_page mfollow_page = (my_follow_page)0xffffffff870f4240;
 
 // 进程的 pid
 static unsigned int pid = 0;
@@ -262,7 +262,6 @@ static void traverse_page_table(struct task_struct* task) {
 // FIXME: func == 4 或者 func == 5
 static void print_seg_info(void) {
     struct mm_struct* mm;
-    unsigned long addr;
     printk("func == 4 or func == 5, %s\n", __func__);
     mm = get_task_mm(my_task_info.task);
     if (mm == NULL) {
@@ -276,21 +275,65 @@ static void print_seg_info(void) {
     //          正确结果：如果是运行实验提供的 workload，这一部分数据段应该会打印出 char *trace_data，
     //                   static char global_data[100] 和 char hamlet_scene1[8276] 的内容。
     struct vm_area_struct* vma;
-    unsigned long virt_addr = mm->start_data;
+    unsigned long virt_addr;
+    unsigned long start;
+    unsigned long end;
     unsigned long tmp_addr;
-    unsigned long vm_flags;
+    unsigned long size;
+    unsigned long offset;
     struct page* page;
-    while (virt_addr < mm->end_data) {  // Walk through virt addrs
-        vma = find_vma(mm, virt_addr);
-        page = mfollow_page(vma, virt_addr, FOLL_GET);
-        if (!IS_ERR_OR_NULL(page)) {
-            tmp_addr = kmap_atomic(page);
-            memcpy(tmp_addr, buf, PAGE_SIZE);
-            kunmap_atomic(tmp_addr);
-            flush_buf(1);
-        }
-        virt_addr = vma->vm_end;  // Next virt addr
+    if (ktest_func == 4) {
+        start = mm->start_data;
+        end = mm->end_data;
+    } else {
+        start = mm->start_code;
+        end = mm->end_code;
     }
+    virt_addr = start;
+    pr_info("start: %lx; end: %lx\n", virt_addr, end);
+    vma = mm->mmap;
+    while (vma != NULL) {
+        virt_addr = vma->vm_start;
+        while (virt_addr < vma->vm_end) {
+            page = mfollow_page(vma, virt_addr, FOLL_GET);
+            if (!IS_ERR_OR_NULL(page)) {
+                if (start <= virt_addr && end >= virt_addr + PAGE_SIZE) {
+                    tmp_addr = kmap_atomic(page);
+                    memcpy(buf, tmp_addr, PAGE_SIZE);
+                } else if (end >= virt_addr && end <= virt_addr + PAGE_SIZE) {
+                    tmp_addr = kmap_atomic(page);
+                    memcpy(buf, tmp_addr, end - virt_addr);
+                } else if (start >= virt_addr && start <= virt_addr + PAGE_SIZE) {
+                    tmp_addr = kmap_atomic(page);
+                    memcpy(buf, tmp_addr + start - virt_addr, virt_addr + PAGE_SIZE - start);
+                }
+                kunmap_atomic(tmp_addr);
+                flush_buf(0);
+            }
+            virt_addr += PAGE_SIZE;
+        }
+        vma = vma->vm_next;
+    }
+    // while (virt_addr < end) {  // Walk through virt addrs
+    //     vma = find_vma(mm, virt_addr);
+    //     if (!vma) {
+    //         pr_info("no vma at %lx\n", virt_addr);
+    //         virt_addr = vma->vm_end;  // Next virt addr
+    //         continue;
+    //     }
+    //     virt_addr = vma->vm_start;
+    //     while (virt_addr < vma->vm_end) {
+    //         page = mfollow_page(vma, virt_addr, FOLL_GET);
+    //         if (!IS_ERR_OR_NULL(page)) {
+    //             tmp_addr = kmap_atomic(page);
+    //             memcpy(buf, tmp_addr, PAGE_SIZE); // dst, src, size
+    //             flush_buf(0);
+    //             kunmap_atomic(tmp_addr);
+    //         }
+    //         virt_addr += PAGE_SIZE;
+    //     }
+    //     virt_addr = vma->vm_end;  // Next virt addr
+    // }
     mmput(mm);
 }
 
