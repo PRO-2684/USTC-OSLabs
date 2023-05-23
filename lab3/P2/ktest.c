@@ -195,33 +195,33 @@ static void print_mm_active_info(void) {
 
 static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
     // 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
-    pgd_t *pgd_tmp = NULL;
-    pud_t *pud_tmp = NULL;
-    pmd_t *pmd_tmp = NULL;
-    pte_t *pte_tmp = NULL;
+    pgd_t *pgd = NULL;
+    pud_t *pud = NULL;
+    pmd_t *pmd = NULL;
+    pte_t *pte = NULL;
     unsigned long pfn;
     if (mm) {
-        pgd_tmp = pgd_offset(mm, virt);
-        if (pgd_none(*pgd_tmp) || unlikely(pgd_bad(*pgd_tmp))) {
+        pgd = pgd_offset(mm, virt);
+        if (pgd_none(*pgd) || unlikely(pgd_bad(*pgd))) {
             pr_info("func: %s pgd none or bad!\n", __func__);
             return 0;
         }
-        pud_tmp = pud_offset((p4d_t *)(pgd_tmp), virt);
-        if (pud_none(*pud_tmp) || unlikely(pud_bad(*pud_tmp))) {
+        pud = pud_offset((p4d_t *)(pgd), virt);
+        if (pud_none(*pud) || unlikely(pud_bad(*pud))) {
             pr_info("func: %s pud none or bad!\n", __func__);
             return 0;
         }
-        pmd_tmp = pmd_offset(pud_tmp, virt);
-        if (pmd_none(*pmd_tmp) || unlikely(pmd_bad(*pmd_tmp))) {
+        pmd = pmd_offset(pud, virt);
+        if (pmd_none(*pmd) || unlikely(pmd_bad(*pmd))) {
             pr_info("func: %s pmd none or bad!\n", __func__);
             return 0;
         }
-        pte_tmp = pte_offset_kernel(pmd_tmp, virt);
-        if (pte_none(*pte_tmp) || unlikely(!pte_present(*pte_tmp))) {
+        pte = pte_offset_kernel(pmd, virt);
+        if (pte_none(*pte) || unlikely(!pte_present(*pte))) {
             pr_info("func: %s pte none or not present!\n", __func__);
             return 0;
         }
-        pfn = pte_pfn(*pte_tmp);
+        pfn = pte_pfn(*pte);
         struct page* page = mfollow_page(mm->mmap, virt, FOLL_GET);
         if (unlikely(pfn != page_to_pfn(page))) {
             pr_err("func: %s Not equal! (%lx, %lx)\n", __func__, pfn, page_to_pfn(page));
