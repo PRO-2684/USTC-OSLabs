@@ -194,7 +194,7 @@ static void print_mm_active_info(void) {
 }
 
 static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
-    // FIXME: 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
+    // 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
     pgd_t *pgd_tmp = NULL;
     pud_t *pud_tmp = NULL;
     pmd_t *pmd_tmp = NULL;
@@ -259,7 +259,7 @@ static void traverse_page_table(struct task_struct* task) {
     }
 }
 
-// func == 4 或者 func == 5
+// FIXME: func == 4 或者 func == 5
 static void print_seg_info(void) {
     struct mm_struct* mm;
     unsigned long addr;
@@ -269,12 +269,28 @@ static void print_seg_info(void) {
         pr_err("mm_struct is NULL\n");
         return;
     }
-    // TODO: 根据数据段或者代码段的起始地址和终止地址得到其中的页面，然后打印页面内容到文件中
+    // 根据数据段或者代码段的起始地址和终止地址得到其中的页面，然后打印页面内容到文件中
     // 相关提示：可以使用 follow_page 函数得到虚拟地址对应的 page，然后使用 addr=kmap_atomic(page) 得到可以直接
     //          访问的虚拟地址，然后就可以使用 memcpy 函数将数据段或代码段拷贝到全局变量 buf 中以写入到文件中
     //          注意：使用 kmap_atomic(page) 结束后还需要使用 kunmap_atomic(addr) 来进行释放操作
     //          正确结果：如果是运行实验提供的 workload，这一部分数据段应该会打印出 char *trace_data，
     //                   static char global_data[100] 和 char hamlet_scene1[8276] 的内容。
+    struct vm_area_struct* vma;
+    unsigned long virt_addr = mm->start_data;
+    unsigned long tmp_addr;
+    unsigned long vm_flags;
+    struct page* page;
+    while (virt_addr < mm->end_data) {  // Walk through virt addrs
+        vma = find_vma(mm, virt_addr);
+        page = mfollow_page(vma, virt_addr, FOLL_GET);
+        if (!IS_ERR_OR_NULL(page)) {
+            tmp_addr = kmap_atomic(page);
+            memcpy(tmp_addr, buf, PAGE_SIZE);
+            kunmap_atomic(tmp_addr);
+            flush_buf(1);
+        }
+        virt_addr = vma->vm_end;  // Next virt addr
+    }
     mmput(mm);
 }
 
