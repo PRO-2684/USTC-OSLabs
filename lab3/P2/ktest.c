@@ -322,10 +322,12 @@ static void print_seg_info(void) {
         virt_addr = vma->vm_start;
         while (virt_addr < vma->vm_end) {
             page = mfollow_page(vma, virt_addr, FOLL_GET);
+            pr_info("page pfn: %lx\n", page_to_pfn(page));
             if (!IS_ERR_OR_NULL(page)) {
                 tmp_addr = kmap_atomic(page);
                 memcpy(buf, tmp_addr, PAGE_SIZE);
-                flush_buf(0);
+                pr_info("buffer value: %s\n", buf);
+                flush_buf(1);
                 kunmap_atomic(tmp_addr);
             }
             virt_addr += PAGE_SIZE;
