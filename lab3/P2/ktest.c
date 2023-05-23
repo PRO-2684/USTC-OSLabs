@@ -1,7 +1,3 @@
-// #ifdef __INTELLISENSE__
-//     #pragma diag_suppress 91
-//     #pragma diag_suppress 145
-// #endif
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/errno.h>
@@ -58,9 +54,9 @@ typedef typeof(page_referenced)* my_page_referenced;
 typedef typeof(follow_page)* my_follow_page;
 
 // sudo cat /proc/kallsyms | grep page_referenced
-static my_page_referenced mpage_referenced = (my_page_referenced)0xffffffffb5512b10;
+static my_page_referenced mpage_referenced = (my_page_referenced)0xffffffffaa712b10;
 // sudo cat /proc/kallsyms | grep follow_page
-static my_follow_page mfollow_page = (my_follow_page)0xffffffffb54f4240;
+static my_follow_page mfollow_page = (my_follow_page)0xffffffffaa6f4240;
 
 // 进程的 pid
 static unsigned int pid = 0;
@@ -199,47 +195,52 @@ static void print_mm_active_info(void) {
 
 static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
     // FIXME: 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
-    unsigned long phys;
-    pgd_t* pgd_tmp = NULL;
+    pgd_t *pgd_tmp = NULL;
     pud_t *pud_tmp = NULL;
     pmd_t *pmd_tmp = NULL;
     pte_t *pte_tmp = NULL;
-    pgd_tmp = pgd_offset(mm, virt);
-    if (pgd_none(*pgd_tmp)) {
-        pr_info("func: %s pgd none\n", __func__);
-        return NULL;
+    unsigned long pfn;
+    if (mm) {
+        pgd_tmp = pgd_offset(mm, virt);
+        if (pgd_none(*pgd_tmp) || unlikely(pgd_bad(*pgd_tmp))) {
+            pr_info("func: %s pgd none or bad!\n", __func__);
+            return 0;
+        }
+        pud_tmp = pud_offset((p4d_t *)(pgd_tmp), virt);
+        if (pud_none(*pud_tmp) || unlikely(pud_bad(*pud_tmp))) {
+            pr_info("func: %s pud none or bad!\n", __func__);
+            return 0;
+        }
+        pmd_tmp = pmd_offset(pud_tmp, virt);
+        if (pmd_none(*pmd_tmp) || unlikely(pmd_bad(*pmd_tmp))) {
+            pr_info("func: %s pmd none or bad!\n", __func__);
+            return 0;
+        }
+        pte_tmp = pte_offset_kernel(pmd_tmp, virt);
+        if (pte_none(*pte_tmp) || unlikely(!pte_present(*pte_tmp))) {
+            pr_info("func: %s pte none or not present!\n", __func__);
+            return 0;
+        }
+        pfn = pte_pfn(*pte_tmp);
+        struct page* page = mfollow_page(mm->mmap, virt, FOLL_GET);
+        if (unlikely(pfn != page_to_pfn(page))) {
+            pr_err("func: %s Not equal! (%lx, %lx)\n", __func__, pfn, page_to_pfn(page));
+        }
+        return pfn;
+    } else {
+        pr_err("func: %s mm_struct is NULL\n", __func__);
+        return 0;
     }
-    pud_tmp = pud_offset((p4d_t *)(pgd_tmp), virt);
-    if (pud_none(*pud_tmp)) {
-        pr_info("func: %s pud none\n", __func__);
-        return NULL;
-    }
-    pmd_tmp = pmd_offset(pud_tmp, virt);
-    if (pmd_none(*pmd_tmp)) {
-        pr_info("func: %s pmd none\n", __func__);
-        return NULL;
-    }
-    pte_tmp = pte_offset_kernel(pmd_tmp, virt);
-    if (pte_none(*pte_tmp)) {
-        pr_info("func: %s pte none\n", __func__);
-        return NULL;
-    }
-    phys = (pte_tmp->pte & PAGE_MASK) | (virt & ~PAGE_MASK);
-    struct page* page = mfollow_page(mm->mmap, virt, FOLL_GET);
-    if ((pte_tmp->pte & PAGE_MASK) != (page_to_pfn(page) << 12))
-        pr_err("func: %s Not equal!\n", __func__);
-    return phys;
 }
 
 // func = 3
 static void traverse_page_table(struct task_struct* task) {
     printk("func == 3, %s\n", __func__);
     // struct mm_struct* mm = get_task_mm(my_task_info.task);
-    struct mm_struct* mm = task->mm;
+    struct mm_struct* mm = get_task_mm(task);
     if (mm) {
-        // TODO: 遍历 VMA，并以 PAGE_SIZE 为粒度逐个遍历 VMA 中的虚拟地址，然后进行页表遍历
+        // FIXME: 遍历 VMA，并以 PAGE_SIZE 为粒度逐个遍历 VMA 中的虚拟地址，然后进行页表遍历
         struct vm_area_struct* vma = mm->mmap;
-        struct page* page;
         unsigned long virt_addr;
         unsigned long vm_flags;
         while (vma != NULL) {  // Walk through vmas
@@ -247,7 +248,9 @@ static void traverse_page_table(struct task_struct* task) {
             while (virt_addr < vma->vm_end) { // Walk through pages
                 record_two_data(virt_addr, virt2phys(mm, virt_addr));
                 virt_addr += PAGE_SIZE; // Get next virt_addr
+                // break;
             }
+            // break;
             vma = vma->vm_next; // Get next vma
         }
         flush_buf(1); // Newline
