@@ -195,28 +195,24 @@ static void print_mm_active_info(void) {
 
 static unsigned long virt2phys(struct mm_struct* mm, unsigned long virt) {
     // 多级页表遍历：pgd->pud->pmd->pte，然后从 pte 到 page，最后得到 pfn
-    pgd_t *pgd = NULL;
-    pud_t *pud = NULL;
-    pmd_t *pmd = NULL;
-    pte_t *pte = NULL;
     unsigned long pfn;
     if (mm) {
-        pgd = pgd_offset(mm, virt);
+        pgd_t *pgd = pgd_offset(mm, virt);
         if (pgd_none(*pgd) || unlikely(pgd_bad(*pgd))) {
             pr_info("func: %s pgd none or bad!\n", __func__);
             return 0;
         }
-        pud = pud_offset((p4d_t *)(pgd), virt);
+        pud_t *pud = pud_offset((p4d_t *)(pgd), virt);
         if (pud_none(*pud) || unlikely(pud_bad(*pud))) {
             pr_info("func: %s pud none or bad!\n", __func__);
             return 0;
         }
-        pmd = pmd_offset(pud, virt);
+        pmd_t *pmd = pmd_offset(pud, virt);
         if (pmd_none(*pmd) || unlikely(pmd_bad(*pmd))) {
             pr_info("func: %s pmd none or bad!\n", __func__);
             return 0;
         }
-        pte = pte_offset_kernel(pmd, virt);
+        pte_t *pte = pte_offset_kernel(pmd, virt);
         if (pte_none(*pte) || unlikely(!pte_present(*pte))) {
             pr_info("func: %s pte none or not present!\n", __func__);
             return 0;
