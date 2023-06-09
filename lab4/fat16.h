@@ -53,7 +53,7 @@ typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t DWORD;
 
-// 簇号（FAT表项）
+// 簇号（FAT 表项）
 #define CLUSTER_FREE        0x0000u         // 未分配的簇号
 #define CLUSTER_MIN         0x0002u         // 第一个代表簇的簇号
 #define CLUSTER_MAX         0xFFEFu         // 最后一个代表簇的簇号
@@ -117,5 +117,8 @@ enum FindResult {
 
 int sector_read(sector_t sec_num, void *buffer);
 int sector_write(sector_t sec_num, const void *buffer);
+
+int sector_read(sector_t sec_num, void *buffer) {}
+int sector_write(sector_t sec_num, const void *buffer) {}
 
 #endif

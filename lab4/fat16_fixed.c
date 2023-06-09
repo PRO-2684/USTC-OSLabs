@@ -20,7 +20,7 @@ void busywait(long us) {
     while (true) {
         clock_gettime(CLOCK_MONOTONIC, &t);
         long dus = (long)(t.tv_sec - s.tv_sec) * 1000000 + (t.tv_nsec - s.tv_nsec) / 1000;
-        if (dus >= us) {
+        if (dus>= us) {
             break;
         }
         if (dus < 0) {
