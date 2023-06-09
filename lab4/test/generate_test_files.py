@@ -58,6 +58,6 @@ if __name__ == '__main__':
     os.mknod(LARGE_FILE, mode=0o666)
     with open(LARGE_FILE, 'w') as f:
         f.write(LARGE_FILE_CONTENT)
-    
+
     os.makedirs(TREE_DIR, mode=0o777, exist_ok=True)
     create_tree(TREE, TREE_DIR)

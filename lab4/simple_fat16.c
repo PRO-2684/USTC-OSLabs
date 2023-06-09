@@ -25,7 +25,7 @@ typedef struct {
     sector_t root_sec;              // 根目录区域开始扇区
     uint32_t root_sectors;          // 根目录区域扇区数
     sector_t data_sec;              // 数据区域开始扇区
-    
+
     uint32_t clusters;              // 文件系统簇数
     uint32_t cluster_size;          // 簇大小（字节）
 
@@ -46,9 +46,9 @@ size_t sector_offset(sector_t sector) {
 
 /**
  * @brief 簇号是否是合法的（表示正在使用的）数据簇号（在CLUSTER_MIN和CLUSTER_MAX之间）
- * 
+ *
  * @param clus 簇号
- * @return int        
+ * @return int
  */
 bool is_cluster_inuse(cluster_t clus) {
     return CLUSTER_MIN <= clus && clus <= CLUSTER_MAX;
@@ -116,7 +116,7 @@ bool path_is_root(const char* path) {
 
 /**
  * @brief 将文件名转换为FAT的 8+3 文件名格式，存储在res中，res是长度至少为11的 char 数组
- * 
+ *
  */
 int to_shortname(const char* name, size_t len, char* res) {
     bool has_ext = false;
@@ -162,7 +162,7 @@ int to_shortname(const char* name, size_t len, char* res) {
  * @brief 将FAT的 8+3 文件名格式转换为普通文件名，存储在res中，len是res的长度
  */
 int to_longname(const uint8_t fat_name[11], char* res, size_t len) {
-    len --;  // last char for '\0' 
+    len --;  // last char for '\0'
     size_t i = 0;
     while(i < len && i < FAT_NAME_BASE_LEN) {
         if(fat_name[i] == ' ') {
@@ -196,7 +196,7 @@ bool check_name(const char* name, size_t len, const DIR_ENTRY* dir) {
 
 /**
  * @brief 读取簇号为 clus 对应的 FAT 表项
- * 
+ *
  * @param clus 簇号
  * @return cluster_t FAT 返回值：对应 FAT 表项的值
  */
@@ -214,7 +214,7 @@ cluster_t read_fat_entry(cluster_t clus)
 
 /**
  * @brief 用于表示目录项查找结果的结构体
- * 
+ *
  */
 typedef struct {
     DIR_ENTRY dir;      // 找到的目录项
@@ -233,10 +233,10 @@ typedef struct {
  * @param from_sector       要查找的第一个扇区号
  * @param sectors_count     要查找的扇区数
  * @param slot              找到的目录项，参考对 DirEntrySlot 的注释
- * @return long 
+ * @return long
  */
-int find_entry_in_sectors(const char* name, size_t len, 
-            sector_t from_sector, size_t sectors_count, 
+int find_entry_in_sectors(const char* name, size_t len,
+            sector_t from_sector, size_t sectors_count,
             DirEntrySlot* slot) {
     char buffer[PHYSICAL_SECTOR_SIZE];
     // 对每一个待查找的扇区：
@@ -257,7 +257,7 @@ int find_entry_in_sectors(const char* name, size_t len,
 
 /**
  * @brief 找到path所对应路径的目录项，如果最后一级路径不存在，则找到能创建最后一集文件/目录的空目录项。（这个函数同时实现了找目录项和找空槽的功能）
- * 
+ *
  * @param path          需要查找的路径
  * @param slot          最后一级找到的目录项，参考对 DirEntrySlot 的注释
  * @param remains       path 中未找到的部分
@@ -281,7 +281,7 @@ int find_entry_internal(const char* path, DirEntrySlot* slot, const char** remai
             sector_t root_sec;
             size_t nsec;
             // 使用 find_entry_in_sectors 寻找相应的目录项
-            state = find_entry_in_sectors(*remains, len, root_sec, nsec, slot); 
+            state = find_entry_in_sectors(*remains, len, root_sec, nsec, slot);
             if(state != FIND_EXIST) {
                 // 根目录项中没找到第一级路径，直接返回
                 return state;
@@ -330,10 +330,10 @@ int find_entry_internal(const char* path, DirEntrySlot* slot, const char** remai
 
 /**
  * @brief 读目录、读文件时使用，找到path所对应路径的目录项。其实只是包装了一下 find_entry_internal
- * 
- * @param path 
- * @param slot 
- * @return int 
+ *
+ * @param path
+ * @param slot
+ * @return int
  */
 int find_entry(const char* path, DirEntrySlot* slot) {
     const char* remains = NULL;
@@ -350,11 +350,11 @@ int find_entry(const char* path, DirEntrySlot* slot) {
 
 /**
  * @brief 创建目录、创建文件时使用，找到一个空槽，并且顺便检查是否有重名文件/目录。
- * 
- * @param path 
- * @param slot 
- * @param last_name 
- * @return int 
+ *
+ * @param path
+ * @param slot
+ * @param last_name
+ * @return int
  */
 int find_empty_slot(const char* path, DirEntrySlot *slot, const char** last_name) {
     int ret = find_entry_internal(path, slot, last_name);
@@ -398,7 +398,7 @@ void time_unix_to_fat(const struct timespec* ts, uint16_t* date, uint16_t* time,
     *date |= ((t->tm_year - 80) << 9);
     *date |= ((t->tm_mon + 1) << 5);
     *date |= t->tm_mday;
-    
+
     if(time != NULL) {
         *time = 0;
         *time |= (t->tm_hour << 11);
@@ -416,15 +416,15 @@ void time_unix_to_fat(const struct timespec* ts, uint16_t* date, uint16_t* time,
 
 /**
  * @brief 文件系统初始化，无需修改
- * 
- * @param conn 
- * @return void* 
+ *
+ * @param conn
+ * @return void*
  */
 void *fat16_init(struct fuse_conn_info * conn, struct fuse_config *config) {
     /* Reads the BPB */
     BPB_BS bpb;
     sector_read(0, &bpb);
-    
+
     // TODO0.0: 你无需修改这部分代码，但阅读这部分，并理解这些变量的含义有助于你理解文件系统的结构
     // 请同时参考 FAT16 结构体的定义里的注释（本文件第15行开始）
     meta.sector_size = bpb.BPB_BytsPerSec;
@@ -454,14 +454,14 @@ void *fat16_init(struct fuse_conn_info * conn, struct fuse_config *config) {
 
 /**
  * @brief 释放文件系统，无需修改
- * 
- * @param data 
+ *
+ * @param data
  */
 void fat16_destroy(void *data) { }
 
 /**
  * @brief 获取path对应的文件的属性，无需修改
- * 
+ *
  * @param path    要获取属性的文件路径
  * @param stbuf   输出参数，需要填充的属性结构体
  * @return int    成功返回0，失败返回POSIX错误代码的负值
@@ -503,7 +503,7 @@ int fat16_getattr(const char* path, struct stat* stbuf, struct fuse_file_info* f
     stbuf->st_mode = get_mode_from_attr(dir->DIR_Attr);
     stbuf->st_size = dir->DIR_FileSize;
     stbuf->st_blocks = dir->DIR_FileSize / PHYSICAL_SECTOR_SIZE;
-    
+
     time_fat_to_unix(&stbuf->st_atim, dir->DIR_LstAccDate, 0, 0);
     time_fat_to_unix(&stbuf->st_mtim, dir->DIR_WrtDate, dir->DIR_WrtTime, 0);
     time_fat_to_unix(&stbuf->st_ctim, dir->DIR_CrtDate, dir->DIR_CrtTime, dir->DIR_CrtTimeTenth);
@@ -519,7 +519,7 @@ int fat16_getattr(const char* path, struct stat* stbuf, struct fuse_file_info* f
  *          filler(buf, "orange", NULL, 0)
  *          filler(buf, "banana", NULL, 0)
  *        然后返回0，这样就告诉了FUSE，/a/b目录下有这三个文件。
- * 
+ *
  * @param path    要读取目录的路径
  * @param buf     结果缓冲区
  * @param filler  用于填充结果的函数，本次实验按filler(buffer, 文件名, NULL, 0)的方式调用即可。
@@ -528,7 +528,7 @@ int fat16_getattr(const char* path, struct stat* stbuf, struct fuse_file_info* f
  * @param fi      忽略
  * @return int    成功返回0，失败返回POSIX错误代码的负值
  */
-int fat16_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, 
+int fat16_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
                     struct fuse_file_info *fi, enum fuse_readdir_flags flags) {
     // 这里解释本函数的思路：
     //   1. path 是我们要读取的路径，有两种情况，path是根目录，path 不是根目录。
@@ -536,7 +536,7 @@ int fat16_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
     //   3. 如果 path 不是根目录，那么我们需要找到 path 对应的目录项（这部分逻辑在find_entry和find_entry_internal两个函数中。）
     //   4. 目录项中保存了 path 对应的目录的第一个簇号，我们读取簇中每个目录项的内容即可。
     //   5. 使用 filler 函数将每个目录项的文件名写入 buf 中。
-    
+
     bool root = path_is_root(path);
     DIR_ENTRY dir;
     cluster_t clus = CLUSTER_END;
@@ -590,18 +590,18 @@ int fat16_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
 
         clus = read_fat_entry(clus);
     }
-    
+
     return 0;
 }
 
 /**
  * @brief 从簇 clus 的 offset 处开始读取 size 字节的数据到 data 中，并返回实际读取的字节数。
- * 
+ *
  * @param clus      要读取的簇号
  * @param offset    要读取的数据在簇中的偏移量
  * @param data      结果缓冲区
  * @param size      要读取的数据长度
- * @return int 
+ * @return int
  */
 int read_from_cluster_at_offset(cluster_t clus, off_t offset, char* data, size_t size) {
     // printf("Read clus %hd at offset %ld, size: %lu\n", clus, offset, size);
@@ -628,7 +628,7 @@ int read_from_cluster_at_offset(cluster_t clus, off_t offset, char* data, size_t
 /**
  * @brief 从path对应的文件的offset字节处开始读取size字节的数据到buffer中，并返回实际读取的字节数。
  * Hint: 文件大小属性是Dir.DIR_FileSize。
- * 
+ *
  * @param path    要读取文件的路径
  * @param buffer  结果缓冲区
  * @param size    需要读取的数据长度
@@ -663,7 +663,7 @@ int fat16_read(const char *path, char *buffer, size_t size, off_t offset,
     // TODO1.6: clus 初始为该文件第一个簇，利用 read_from_cluster_at_offset 函数，从正确的簇中读取数据。
     // Hint: 需要注意 offset 的位置，和结束读取的位置。要读取的数据可能横跨多个簇，也可能就在一个簇的内部。
     // 你可以参考 read_from_cluster_at_offset 里，是怎么处理每个扇区的读取范围的，或者用自己的方式解决这个问题。
-    
+
     return p;
 }
 
@@ -675,28 +675,28 @@ int fat16_read(const char *path, char *buffer, size_t size, off_t offset,
  *        注意，我们只能用 sector_write() 写入整个扇区的数据，所以要修改单个目录项，需要先读出整个扇区
  *        然后修改目录项对应的部分，然后将整个扇区写回。
  * @param slot 要写入的目录项，及目录项所在的扇区号和偏移量
- * @return int 
+ * @return int
  */
 int dir_entry_write(DirEntrySlot slot) {
     char sector_buffer[PHYSICAL_SECTOR_SIZE];
-    // TODO2.1: 
+    // TODO2.1:
     //  1. 读取 slot.dir 所在的扇区
     //  2. 将目录项写入buffer对应的位置（Hint: 使用memcpy）
     //  3. 将整个扇区完整写回
     return 0;
 }
 
-int dir_entry_create(DirEntrySlot slot, const char *shortname, 
+int dir_entry_create(DirEntrySlot slot, const char *shortname,
             attr_t attr, cluster_t first_clus, size_t file_size) {
     DIR_ENTRY* dir = &(slot.dir);
     memset(dir, 0, sizeof(DIR_ENTRY));
-    
+
     memcpy(dir, shortname, 11);
     dir->DIR_Attr = attr;
     dir->DIR_FstClusHI = 0;
     dir->DIR_FstClusLO = first_clus;
     dir->DIR_FileSize = file_size;
-    
+
     struct timespec ts;
     int ret = clock_gettime(CLOCK_REALTIME, &ts);
     if(ret < 0) {
@@ -716,7 +716,7 @@ int dir_entry_create(DirEntrySlot slot, const char *shortname,
 
 /**
  * @brief 将data写入簇号为clusterN的簇对应的FAT表项，注意要对文件系统中所有FAT表都进行相同的写入。
- * 
+ *
  * @param clus  要写入表项的簇号
  * @param data      要写入表项的数据，如下一个簇号，CLUSTER_END（文件末尾），或者0（释放该簇）等等
  * @return int      成功返回0
@@ -807,7 +807,7 @@ int alloc_clusters(size_t n, cluster_t* first_clus) {
 
 /**
  * @brief 在path对应的路径创建新文件 （请阅读函数的逻辑，补全find_empty_slot和dir_entry_create两个函数）
- * 
+ *
  * @param path    要创建的文件路径
  * @param mode    要创建文件的类型，本次实验可忽略，默认所有创建的文件都为普通文件
  * @param devNum  忽略，要创建文件的设备的设备号
@@ -837,7 +837,7 @@ int fat16_mknod(const char *path, mode_t mode, dev_t dev) {
 
 /**
  * @brief 删除path对应的文件（请阅读函数逻辑，补全free_clusters和dir_entry_write）
- * 
+ *
  * @param path  要删除的文件路径
  * @return int  成功返回0，失败返回POSIX错误代码的负值
  */
@@ -866,13 +866,13 @@ int fat16_unlink(const char *path) {
 
 /**
  * @brief 修改path对应文件的时间戳，本次实验不做要求，可忽略该函数
- * 
+ *
  * @param path  要修改时间戳的文件路径
  * @param tv    时间戳
- * @return int 
+ * @return int
  */
 int fat16_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info* fi) {
-    printf("utimens(path='%s', tv=[%ld.%09ld, %ld.%09ld])\n", path, 
+    printf("utimens(path='%s', tv=[%ld.%09ld, %ld.%09ld])\n", path,
                 tv[0].tv_sec, tv[0].tv_nsec, tv[1].tv_sec, tv[1].tv_nsec);
     DirEntrySlot slot;
     DIR_ENTRY* dir = &(slot.dir);
@@ -887,13 +887,13 @@ int fat16_utimens(const char *path, const struct timespec tv[2], struct fuse_fil
     if(ret < 0) {
         return ret;
     }
-    
+
     return 0;
 }
 
 /**
  * @brief 创建path对应的文件夹
- * 
+ *
  * @param path 创建的文件夹路径
  * @param mode 文件模式，本次实验可忽略，默认都为普通文件夹
  * @return int 成功:0， 失败: POSIX错误代码的负值
@@ -916,7 +916,7 @@ int fat16_mkdir(const char *path, mode_t mode) {
 
 /**
  * @brief 删除path对应的文件夹
- * 
+ *
  * @param path 要删除的文件夹路径
  * @return int 成功:0， 失败: POSIX错误代码的负值
  */
@@ -952,7 +952,7 @@ int fat16_rmdir(const char *path) {
 /**
  * @brief 将data中的数据写入编号为clusterN的簇的offset位置。
  *        注意size+offset <= 簇大小
- * 
+ *
  * @param fat16_ins 文件系统指针
  * @param clusterN  要写入数据的块号
  * @param data      要写入的数据
@@ -971,7 +971,7 @@ ssize_t write_to_cluster_at_offset(cluster_t clus, off_t offset, const char* dat
 
 /**
  * @brief 为文件分配新的簇至足够容纳size大小
- * 
+ *
  * @param dir 文件的目录项
  * @param size 所需的大小
  * @return int 成功返回0
@@ -987,7 +987,7 @@ int file_reserve_clusters(DIR_ENTRY* dir, size_t size) {
 /**
  * @brief 将长度为size的数据data写入path对应的文件的offset位置。注意当写入数据量超过文件本身大小时，
  *        需要扩展文件的大小，必要时需要分配新的簇。
- * 
+ *
  * @param path    要写入的文件的路径
  * @param data    要写入的数据
  * @param size    要写入数据的长度
@@ -1007,8 +1007,8 @@ int fat16_write(const char *path, const char *data, size_t size, off_t offset,
  *        若size大于原文件大小，需要将拓展的部分全部置为0，如有需要，需要分配新簇。
  *        若size小于原文件大小，将从末尾截断文件，若有簇不再被使用，应该释放对应的簇。
  *        若size等于原文件大小，什么都不需要做。
- * 
- * @param path 需要更改大小的文件路径 
+ *
+ * @param path 需要更改大小的文件路径
  * @param size 新的文件大小
  * @return int 成功返回0，失败返回POSIX错误代码的负值。
  */

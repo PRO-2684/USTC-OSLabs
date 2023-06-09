@@ -93,7 +93,7 @@ static const struct fuse_opt option_spec[] = {
 extern struct fuse_operations fat16_oper;
 
 int main(int argc, char *argv[])
-{   
+{
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     Options opts;
     opts.image_path = strdup(DEFAULT_IMAGE);
