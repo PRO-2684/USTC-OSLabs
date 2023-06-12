@@ -505,14 +505,14 @@ int fat16_getattr(const char* path, struct stat* stbuf, struct fuse_file_info* f
 /**
  * @brief 读取 path 对应的目录，得到目录中有哪些文件，结果通过 filler 函数写入 buffer 中
  *        例如，如果 path 是 / a/b，而 / a/b 下有 apple、orange、banana 三个文件，那么我们的函数中应该调用 filler 三次：
- *          filler(buf, "apple", NULL, 0)
- *          filler(buf, "orange", NULL, 0)
- *          filler(buf, "banana", NULL, 0)
+ *          filler(buf, "apple", NULL, 0, 0)
+ *          filler(buf, "orange", NULL, 0, 0)
+ *          filler(buf, "banana", NULL, 0, 0)
  *        然后返回 0，这样就告诉了 FUSE，/a/b 目录下有这三个文件。
  *
  * @param path    要读取目录的路径
  * @param buf     结果缓冲区
- * @param filler  用于填充结果的函数，本次实验按 filler(buffer, 文件名, NULL, 0) 的方式调用即可。
+ * @param filler  用于填充结果的函数，本次实验按 filler(buffer, 文件名, NULL, 0, 0) 的方式调用即可。
  *                你也可以参考 <fuse.h> 第 58 行附近的函数声明和注释来获得更多信息。
  * @param offset  忽略
  * @param fi      忽略
@@ -560,7 +560,7 @@ int fat16_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t off
         }
 
         // TODO: 1.5 读取当前簇中每一个扇区内所有目录项，并将合法的项，使用 filler 函数的项的文件名写入 buf 中。
-        // filler 的使用方法： filler(buf, 文件名, NULL, 0)
+        // filler 的使用方法： filler(buf, 文件名, NULL, 0, 0)
         // 你可以参考 find_entry_in_sectors 函数的实现。
         for (size_t i = 0; i < nsec; i++) {
             sector_t sec = first_sec + i;
@@ -769,10 +769,10 @@ int alloc_clusters(size_t n, cluster_t* first_clus) {
     // 找到了 n 个空闲簇，将 CLUSTER_END 加至末尾。
     clusters[n] = CLUSTER_END;
 
-    // TODO: 2.4 修改 clusters 中存储的 N 个簇对应的 FAT 表项，将每个簇与下一个簇连接在一起。同时清零每一个新分配的簇。
+    // DONE: 2.4 修改 clusters 中存储的 N 个簇对应的 FAT 表项，将每个簇与下一个簇连接在一起。同时清零每一个新分配的簇。
     // 清零要分配的簇
     for (size_t i = 0; i < n; i++) {
-        int ret = cluster_clear(clusters[i]);  // 请实现 cluster_clear()
+        int ret = cluster_clear(clusters[i]);
         if (ret < 0) {
             free(clusters);
             return ret;
@@ -1016,4 +1016,5 @@ struct fuse_operations fat16_oper = {
 
     // TASK4: echo "hello world!" > [file] ;  echo "hello world!" >> [file]
     .write = fat16_write,
-    .truncate = fat16_truncate};
+    .truncate = fat16_truncate
+};

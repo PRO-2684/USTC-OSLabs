@@ -24,7 +24,7 @@ void busywait(long us) {
             break;
         }
         if (dus < 0) {
-            printf("fetal: time error\n");
+            printf("fatal: time error\n");
             break;
         }
     }
