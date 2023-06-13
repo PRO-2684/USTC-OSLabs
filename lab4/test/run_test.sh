@@ -29,5 +29,5 @@ mkdir -p ./fat16
 make -C .. debug
 ../simple_fat16 -s ./fat16 --img="./fat16-test-32M.img"
 # python3 -m unittest ./fat16_test.py
-pytest -x -v ./fat16_test.py
-fusermount -u ./fat16
+python3 -m pytest -x -v ./fat16_test.py
+fusermount -zu ./fat16

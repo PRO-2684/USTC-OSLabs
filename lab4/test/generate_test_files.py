@@ -15,7 +15,7 @@ SMALL_FILES_SIZE = [(i + 1)*4 for i in range(20)]
 SMALL_FILES_CONTENT = [f'{i:04}' * (i + 1) for i in range(20)]
 
 
-CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789'
 def random_name(l, r: random.Random):
     return ''.join(r.choices(CHARS, k=l))
 
@@ -26,7 +26,7 @@ def generate_tree_depth(depth, prefix="", r=random.Random(0)):
     n = r.randint(1, 4)
     for i in range(n):
         d = depth - 1 if n == 0 else r.randint(0, depth - 1)
-        p = prefix + chr(ord('A') + i)
+        p = prefix + chr(ord('a') + i)
         tree[p] = generate_tree_depth(d, p, r)
     return tree
 
@@ -58,6 +58,6 @@ if __name__ == '__main__':
     os.mknod(LARGE_FILE, mode=0o666)
     with open(LARGE_FILE, 'w') as f:
         f.write(LARGE_FILE_CONTENT)
-
+    
     os.makedirs(TREE_DIR, mode=0o777, exist_ok=True)
     create_tree(TREE, TREE_DIR)

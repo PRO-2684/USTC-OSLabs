@@ -1,12 +1,12 @@
-#include <assert.h>
 #include <ctype.h>
-#include <errno.h>
 #include <string.h>
+#include <time.h>
+#include <assert.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/timeb.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
 
 #include "fat16.h"
 
@@ -104,8 +104,8 @@ bool is_dot(DIR_ENTRY* dir) {
     }
     const char* name = (const char*)dir->DIR_Name;
     attr_t attr = dir->DIR_Attr;
-    const char DOT_NAME[] = ".";
-    const char DOTDOT_NAME[] = "..";
+    const char DOT_NAME[] =    ".          ";
+    const char DOTDOT_NAME[] = "..         ";
     return strncmp(name, DOT_NAME, FAT_NAME_LEN) == 0 || strncmp(name, DOTDOT_NAME, FAT_NAME_LEN) == 0;
 }
 
@@ -504,7 +504,7 @@ int fat16_getattr(const char* path, struct stat* stbuf, struct fuse_file_info* f
 
 /**
  * @brief 读取 path 对应的目录，得到目录中有哪些文件，结果通过 filler 函数写入 buffer 中
- *        例如，如果 path 是 / a/b，而 / a/b 下有 apple、orange、banana 三个文件，那么我们的函数中应该调用 filler 三次：
+ *        例如，如果 path 是 /a/b，而 /a/b 下有 apple、orange、banana 三个文件，那么我们的函数中应该调用 filler 三次：
  *          filler(buf, "apple", NULL, 0, 0)
  *          filler(buf, "orange", NULL, 0, 0)
  *          filler(buf, "banana", NULL, 0, 0)
@@ -653,7 +653,7 @@ int fat16_read(const char* path, char* buffer, size_t size, off_t offset, struct
     return p;
 }
 
-// ------------------TASK2: 创建 / 删除文件 -----------------------------------
+// ------------------TASK2: 创建/删除文件-----------------------------------
 
 /**
  * @brief 将 DirEntry 写入 Slot 里对应的目录项。
@@ -711,7 +711,7 @@ int write_fat_entry(cluster_t clus, cluster_t data) {
     size_t sec_off = clus_off % meta.sector_size;
     for (size_t i = 0; i < meta.fats; i++) {
         // TODO: 2.2 修改第 i 个 FAT 表中，clus_sec 扇区中，sec_off 偏移处的表项，使其值为 data
-        //   1. 计算第 i 个 FAT 表所在扇区，进一步计算 clus 应的 FAT 表项所在扇区
+        //   1. 计算第 i 个 FAT 表所在扇区，进一步计算 clus 对应的 FAT 表项所在扇区
         //   2. 读取该扇区并在对应位置写入数据
         //   3. 将该扇区写回
     }
@@ -886,8 +886,8 @@ int fat16_mkdir(const char* path, mode_t mode) {
     // Hint: 新目录最开始即有两个目录项，分别是. 和..，所以需要给新目录分配一个簇。
     // Hint: 你可以使用 alloc_clusters 来分配簇。
 
-    const char DOT_NAME[] = ".";
-    const char DOTDOT_NAME[] = "..";
+    const char DOT_NAME[] =    ".          ";
+    const char DOTDOT_NAME[] = "..         ";
 
     // TODO: 2.7 使用 dir_entry_create 创建 . 和 .. 目录项
     // Hint: 两个目录项分别在你刚刚分配的簇的前两项。

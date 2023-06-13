@@ -14,7 +14,7 @@
 /* Unit size */
 #define PHYSICAL_SECTOR_SIZE 512        // 每个物理扇区的大小
 #define MAX_LOGICAL_SECTOR_SIZE 4096    // 逻辑扇区的最大大小
-#define SEC_PER_TRACK  2048            // 每个物理磁道的物理扇区数 （仅用于模拟磁盘）
+#define SEC_PER_TRACK  512            // 每个物理磁道的物理扇区数 （仅用于模拟磁盘）
 #define DIR_ENTRY_SIZE 32              // 每个目录项的大小
 
 // 文件属性，参考 https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system#DIR_OFS_0Bh
@@ -69,14 +69,14 @@ typedef uint32_t DWORD;
 typedef struct {
     BYTE BS_jmpBoot[3];
     BYTE BS_OEMName[8];
-    WORD BPB_BytsPerSec;
-    BYTE BPB_SecPerClus;
-    WORD BPB_RsvdSecCnt;
-    BYTE BPB_NumFATS;
-    WORD BPB_RootEntCnt;
+    WORD BPB_BytsPerSec; // 每个扇区的字节数。基本输入输出系统参数块从这里开始。
+    BYTE BPB_SecPerClus; // 每簇扇区数
+    WORD BPB_RsvdSecCnt; // 保留扇区数（包括主引导区）
+    BYTE BPB_NumFATS; // 文件分配表数目，FAT16 文件系统中为 0x02, FAT2 作为 FAT1 的冗余
+    WORD BPB_RootEntCnt; // 最大根目录条目个数
     WORD BPB_TotSec16;
     BYTE BPB_Media;
-    WORD BPB_FATSz16;
+    WORD BPB_FATSz16; // 每个文件分配表的扇区数（FAT16 专用）
     WORD BPB_SecPerTrk;
     WORD BPB_NumHeads;
     DWORD BPB_HiddSec;
@@ -94,8 +94,8 @@ static_assert(sizeof(BPB_BS) == PHYSICAL_SECTOR_SIZE, "Wrong BPB size");
 
 /* FAT Directory Structure */
 typedef struct {
-    BYTE DIR_Name[11];
-    BYTE DIR_Attr;
+    BYTE DIR_Name[11]; // 文件名。前 8 个字节为文件名，后 3 个为拓展名。
+    BYTE DIR_Attr; // 文件属性，取值为 0x10 表示为目录，0x20 表示为文件
     BYTE DIR_NTRes;
     BYTE DIR_CrtTimeTenth;
     WORD DIR_CrtTime;
@@ -104,8 +104,8 @@ typedef struct {
     WORD DIR_FstClusHI;
     WORD DIR_WrtTime;
     WORD DIR_WrtDate;
-    WORD DIR_FstClusLO;
-    DWORD DIR_FileSize;
+    WORD DIR_FstClusLO; // 文件首簇号 (FAT32 用作第一个簇的两个低字节)
+    DWORD DIR_FileSize; // 文件大小
 } __attribute__ ((packed, aligned(__alignof__(DWORD)))) DIR_ENTRY;
 static_assert(sizeof(DIR_ENTRY) == DIR_ENTRY_SIZE, "Wrong DIR_ENTRY size");
 
@@ -117,8 +117,5 @@ enum FindResult {
 
 int sector_read(sector_t sec_num, void *buffer);
 int sector_write(sector_t sec_num, const void *buffer);
-
-int sector_read(sector_t sec_num, void *buffer) {}
-int sector_write(sector_t sec_num, const void *buffer) {}
 
 #endif
