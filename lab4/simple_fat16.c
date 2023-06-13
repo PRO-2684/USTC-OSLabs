@@ -292,7 +292,7 @@ int find_entry_internal(const char* path, DirEntrySlot* slot, const char** remai
                 }
                 clus = read_fat_entry(clus);  // 记得实现该函数
             }
-
+        }
             // 下一级目录开始位置
             const char* next_level = *remains + len;
             next_level += strspn(next_level, "/");
@@ -315,7 +315,6 @@ int find_entry_internal(const char* path, DirEntrySlot* slot, const char** remai
                     return -ENOTDIR;
                 }
             }
-        }
     }
     return state;
 }
