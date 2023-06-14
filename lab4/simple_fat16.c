@@ -208,7 +208,7 @@ cluster_t read_fat_entry(cluster_t clus) {
     char sector_buffer[PHYSICAL_SECTOR_SIZE];
     size_t clus_off = clus * sizeof(cluster_t);
     sector_t clus_sec = clus_off / meta.sector_size;
-    sector_read(clus_sec, sector_buffer);
+    sector_read(clus_sec + meta.reserved, sector_buffer);
     size_t sec_off = clus_off % meta.sector_size;
     cluster_t res = 0;
     memcpy(&res, sector_buffer + sec_off, sizeof(res) / sizeof(char));
@@ -570,6 +570,7 @@ int fat16_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t off
     // 要读的目录项的第一个簇位于 clus，请你读取该簇中的所有目录项。
     char sector_buffer[MAX_LOGICAL_SECTOR_SIZE];
     char name[MAX_NAME_LEN];
+    // puts("[fat16_readdir]");
     while (root || is_cluster_inuse(clus)) {
         sector_t first_sec;
         size_t nsec;
@@ -606,8 +607,9 @@ int fat16_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t off
         if (root) {
             break;
         }
-
+        // printf("- Cluster #%u: ", clus);
         clus = read_fat_entry(clus);
+        // printf("next #%u\n", clus);
     }
 
     return 0;
@@ -680,16 +682,21 @@ int fat16_read(const char* path, char* buffer, size_t size, off_t offset, struct
     // FIXME: 1.6 clus 初始为该文件第一个簇，利用 read_from_cluster_at_offset 函数，从正确的簇中读取数据。
     // Hint: 需要注意 offset 的位置，和结束读取的位置。要读取的数据可能横跨多个簇，也可能就在一个簇的内部。
     // 你可以参考 read_from_cluster_at_offset 里，是怎么处理每个扇区的读取范围的，或者用自己的方式解决这个问题。
+    // printf("[fat16_read] file size: %d, read size: %ld\n", dir->DIR_FileSize, size);
     while (p < size) {
+        // printf("- Cluster #%u: offset %ld", clus, offset);
         if (offset > meta.cluster_size) {
             offset -= meta.cluster_size;
         } else {
             ret = read_from_cluster_at_offset(clus, offset, buffer + p, min(size - p, meta.cluster_size - offset));
+            // printf(", read %d", ret);
             p += ret;
             offset = 0;
         }
         clus = read_fat_entry(clus);
+        // printf(", next #%u\n", clus);
     }
+    // printf("- Total read: %ld\n", p);
 
     return p;
 }
