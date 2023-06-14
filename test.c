@@ -1,14 +1,13 @@
 #include <stdio.h>
-
-struct test_struct {
-    int pid;
-    char name[128];
-};
+#include <string.h>
 
 int main() {
-    struct test_struct test_list[5];
-    for (int i = 0; i < 5; i++) {
-        printf("%d; %s", test_list[i].pid, test_list[i].name);
-    }
-    return 0;
+    printf("char: %d\n", sizeof(char));
+    printf("unsigned short: %d\n", sizeof(unsigned short));
+    char test[] = " abcd";
+    unsigned res = 0;
+    memcpy(&res, test + 1, sizeof(res) / sizeof(char));
+    // printf("%x\n", test[1]);
+    // printf("%x\n", test[2]);
+    printf("%x\n", res);
 }

@@ -200,13 +200,19 @@ bool check_name(const char* name, size_t len, const DIR_ENTRY* dir) {
  * @return cluster_t FAT 返回值：对应 FAT 表项的值
  */
 cluster_t read_fat_entry(cluster_t clus) {
-    char sector_buffer[PHYSICAL_SECTOR_SIZE];
-    // TODO: 1.4 读取簇号为 clus 对应的 FAT 表项，步骤如下：
+    // FIXME: 1.4 读取簇号为 clus 对应的 FAT 表项，步骤如下：
     // 1. 计算簇号 clus 对应的 FAT 表项的偏移量，并计算表项所在的扇区号
     // 2. 使用 sector_read 函数读取该扇区
     // 3. 计算簇号 clus 对应的 FAT 表项在该扇区中的偏移量
     // 4. 从该偏移量处读取对应表项的值，并返回
-    /** Your Code Here ... **/
+    char sector_buffer[PHYSICAL_SECTOR_SIZE];
+    size_t clus_off = clus * sizeof(cluster_t);
+    sector_t clus_sec = clus_off / meta.sector_size;
+    sector_read(clus_sec, sector_buffer);
+    size_t sec_off = clus_off % meta.sector_size;
+    cluster_t res = 0;
+    memcpy(&res, sector_buffer + sec_off, sizeof(res) / sizeof(char));
+    return res;
 }
 
 /**
@@ -235,16 +241,33 @@ int find_entry_in_sectors(const char* name, size_t len, sector_t from_sector, si
     char buffer[PHYSICAL_SECTOR_SIZE];
     // 对每一个待查找的扇区：
     for (size_t i = 0; i < sectors_count; i++) {
-        // TODO: 1.3 读取每一个扇区扇区，步骤如下：
+        // FIXME: 1.3 读取当前扇区，步骤如下：
         // 1. 使用 sector_read 函数读取从扇区号 from_sector 开始的第 i 个扇区
+        sector_read(from_sector + i, buffer);
         // 2. 对该扇区中的每一个目录项，检查是否是待查找的目录项（注意检查目录项是否合法）
-        for (size_t off = 0; off < meta.sector_size; off += DIR_ENTRY_SIZE) {
-            DIR_ENTRY* dir = (DIR_ENTRY*)(buffer + off);
+        for (size_t offset = 0; offset < meta.sector_size; offset += DIR_ENTRY_SIZE) {
+            DIR_ENTRY* dir = (DIR_ENTRY*)(buffer + offset);
             // 3. 如果是待查找的目录项，将该目录项的信息填入 slot 中，并返回 FIND_EXIST
+            if (check_name(name, len, dir)) {
+                slot->dir = *dir;
+                slot->sector = from_sector + i;
+                slot->offset = offset;
+                // printf("[find_entry_in_sectors] Found \"%s\".\n", name);
+                return FIND_EXIST;
+            }
             // 4. 如果不是待查找的目录项，检查该目录项是否为空，如果为空，将该目录项的信息填入 slot 中，并返回 FIND_EMPTY
-            // 5. 如果不是待查找的目录项，且该扇区中的所有目录项都不为空，返回 FIND_FULL
+            // FIXME: 实际上有想要的目录项，但是由于它之前有空槽，所以返回了空槽？
+            if (is_free(dir)) {
+                slot->dir = *dir;
+                slot->sector = from_sector + i;
+                slot->offset = offset;
+                // printf("[find_entry_in_sectors] \"%s\" empty.\n", name);
+                return FIND_EMPTY;
+            }
         }
     }
+    // 5. 如果不是待查找的目录项，且该扇区中的所有目录项都不为空，返回 FIND_FULL
+    // printf("[find_entry_in_sectors] \"%s\" full.\n", name);
     return FIND_FULL;
 }
 
@@ -270,9 +293,9 @@ int find_entry_internal(const char* path, DirEntrySlot* slot, const char** remai
 
         if (level == 0) {
             // 如果是第一级，需要从根目录开始搜索
-            // TODO: 1.1 设置根目录的扇区号和扇区数（请给下面两个变量赋值，根目录的扇区号和扇区数可以在 meta 里的字段找到。）
-            sector_t root_sec;
-            size_t nsec;
+            // FIXME: 1.1 设置根目录的扇区号和扇区数（请给下面两个变量赋值，根目录的扇区号和扇区数可以在 meta 里的字段找到。）
+            sector_t root_sec = meta.root_sec;
+            size_t nsec = meta.root_sectors;
             // 使用 find_entry_in_sectors 寻找相应的目录项
             state = find_entry_in_sectors(*remains, len, root_sec, nsec, slot);
             if (state != FIND_EXIST) {
@@ -282,9 +305,9 @@ int find_entry_internal(const char* path, DirEntrySlot* slot, const char** remai
         } else {
             // 不是第一级，在目录对应的簇中寻找（在上一级中已将 clus 设为第一个簇）
             while (is_cluster_inuse(clus)) {  // 依次查找每个簇
-                // TODO: 1.2 在 clus 对应的簇中查找每个目录项。
-                // 你可以使用 state = find_entry_in_sectors(.....)， 参数参考第一级中是如何查找的。
-
+                // FIXME: 1.2 在 clus 对应的簇中查找每个目录项。
+                // 你可以使用 state = find_entry_in_sectors(.....)，参考第一级中是如何查找的。
+                state = find_entry_in_sectors(*remains, len, cluster_first_sector(clus), meta.sec_per_clus, slot);
                 if (state < 0) {  // 出现错误
                     return state;
                 } else if (state == FIND_EXIST || state == FIND_EMPTY) {
@@ -293,28 +316,28 @@ int find_entry_internal(const char* path, DirEntrySlot* slot, const char** remai
                 clus = read_fat_entry(clus);  // 记得实现该函数
             }
         }
-            // 下一级目录开始位置
-            const char* next_level = *remains + len;
-            next_level += strspn(next_level, "/");
+        // 下一级目录开始位置
+        const char* next_level = *remains + len;
+        next_level += strspn(next_level, "/");
 
-            if (state == FIND_EXIST) {
-                // 该级找到的情况，remains 后移至下一级
-                level++;
-                *remains = next_level;
-                clus = slot->dir.DIR_FstClusLO;
+        if (state == FIND_EXIST) {
+            // 该级找到的情况，remains 后移至下一级
+            level++;
+            *remains = next_level;
+            clus = slot->dir.DIR_FstClusLO;
+        }
+
+        if (*next_level != '\0') {
+            // 不是最后一级，且没找到
+            if (state != FIND_EXIST) {
+                return -ENOENT;
             }
 
-            if (*next_level != '\0') {
-                // 不是最后一级，且没找到
-                if (state != FIND_EXIST) {
-                    return -ENOENT;
-                }
-
-                // 不是最后一级，且不是目录
-                if (!is_directory(slot->dir.DIR_Attr)) {
-                    return -ENOTDIR;
-                }
+            // 不是最后一级，且不是目录
+            if (!is_directory(slot->dir.DIR_Attr)) {
+                return -ENOTDIR;
             }
+        }
     }
     return state;
 }
@@ -322,8 +345,8 @@ int find_entry_internal(const char* path, DirEntrySlot* slot, const char** remai
 /**
  * @brief 读目录、读文件时使用，找到 path 所对应路径的目录项。其实只是包装了一下 find_entry_internal
  *
- * @param path
- * @param slot
+ * @param path: 指定文件路径
+ * @param slot: 返回给定路径的 DirEntrySlot
  * @return int
  */
 int find_entry(const char* path, DirEntrySlot* slot) {
@@ -415,7 +438,7 @@ void* fat16_init(struct fuse_conn_info* conn, struct fuse_config* config) {
     BPB_BS bpb;
     sector_read(0, &bpb);
 
-    // TODO: 0.0 你无需修改这部分代码，但阅读这部分，并理解这些变量的含义有助于你理解文件系统的结构
+    // DONE: 0.0 你无需修改这部分代码，但阅读这部分，并理解这些变量的含义有助于你理解文件系统的结构
     // 请同时参考 FAT16 结构体的定义里的注释（本文件第 15 行开始）
     meta.sector_size = bpb.BPB_BytsPerSec;
     meta.sec_per_clus = bpb.BPB_SecPerClus;
@@ -526,7 +549,7 @@ int fat16_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t off
     //   5. 使用 filler 函数将每个目录项的文件名写入 buf 中。
 
     bool root = path_is_root(path);
-    DIR_ENTRY dir;
+    // DIR_ENTRY dir;
     cluster_t clus = CLUSTER_END;
     if (!root) {
         DirEntrySlot slot;
@@ -558,17 +581,26 @@ int fat16_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t off
             nsec = meta.sec_per_clus;
         }
 
-        // TODO: 1.5 读取当前簇中每一个扇区内所有目录项，并将合法的项，使用 filler 函数的项的文件名写入 buf 中。
+        // DONE: 1.5 读取当前簇中每一个扇区内所有目录项，并将合法的项，使用 filler 函数把项的文件名写入 buf 中。
         // filler 的使用方法： filler(buf, 文件名, NULL, 0, 0)
         // 你可以参考 find_entry_in_sectors 函数的实现。
         for (size_t i = 0; i < nsec; i++) {
             sector_t sec = first_sec + i;
             sector_read(sec, sector_buffer);
-            // TODO: 1.5 对扇区中每个目录项：
+            // DONE: 1.5 对扇区中每个目录项：
             // 1. 确认其是否是表示文件或目录的项（排除 LFN、空项、删除项等不合法项的干扰）
             // 2. 从 FAT 文件名中，获得长文件名（可以使用提供的 to_longname 函数）
             // 3. 使用 filler 填入 buf
             // 4. 找到空项即可结束查找（说明后面均为空）。
+            for (size_t offset = 0; offset < meta.sector_size; offset += DIR_ENTRY_SIZE) {
+                DIR_ENTRY* dir = (DIR_ENTRY*)(sector_buffer + offset);
+                if (is_valid(dir)) {
+                    to_longname(dir->DIR_Name, name, MAX_NAME_LEN);
+                    filler(buf, name, NULL, 0, 0);
+                } else if (is_free(dir)) {
+                    break;
+                }
+            }
         }
 
         if (root) {
@@ -638,16 +670,26 @@ int fat16_read(const char* path, char* buffer, size_t size, off_t offset, struct
     if (is_directory(dir->DIR_Attr)) {
         return -EISDIR;
     }
-    if (offset> dir->DIR_FileSize) {
+    if (offset > dir->DIR_FileSize) {
         return -EINVAL;
     }
     size = min(size, dir->DIR_FileSize - offset);
 
     cluster_t clus = dir->DIR_FstClusLO;
     size_t p = 0;
-    // TODO: 1.6 clus 初始为该文件第一个簇，利用 read_from_cluster_at_offset 函数，从正确的簇中读取数据。
+    // FIXME: 1.6 clus 初始为该文件第一个簇，利用 read_from_cluster_at_offset 函数，从正确的簇中读取数据。
     // Hint: 需要注意 offset 的位置，和结束读取的位置。要读取的数据可能横跨多个簇，也可能就在一个簇的内部。
     // 你可以参考 read_from_cluster_at_offset 里，是怎么处理每个扇区的读取范围的，或者用自己的方式解决这个问题。
+    while (p < size) {
+        if (offset > meta.cluster_size) {
+            offset -= meta.cluster_size;
+        } else {
+            ret = read_from_cluster_at_offset(clus, offset, buffer + p, min(size - p, meta.cluster_size - offset));
+            p += ret;
+            offset = 0;
+        }
+        clus = read_fat_entry(clus);
+    }
 
     return p;
 }
