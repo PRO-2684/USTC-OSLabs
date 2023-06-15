@@ -1,0 +1,3 @@
+- 编译：`build`
+- 挂载：`./simple_fat16 -s -f ./fat16/ --img=fat16.img`
+- 强制取消挂载：`fusermount3 -zu ./fat16`

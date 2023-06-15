@@ -751,7 +751,7 @@ int fat16_read(const char* path, char* buffer, size_t size, off_t offset, struct
  */
 int dir_entry_write(DirEntrySlot slot) {
     char sector_buffer[PHYSICAL_SECTOR_SIZE];
-    // FIXME: 2.1
+    // DONE: 2.1
     //  1. 读取 slot.dir 所在的扇区
     //  2. 将目录项写入 buffer 对应的位置（Hint: 使用 memcpy）
     //  3. 将整个扇区完整写回
@@ -803,7 +803,7 @@ int write_fat_entry(cluster_t clus, cluster_t data) {
     size_t sec_off = clus_off % meta.sector_size;
     sector_t sector = meta.reserved;
     for (size_t i = 0; i < meta.fats; i++) {
-        // FIXME: 2.2 修改第 i 个 FAT 表中，clus_sec 扇区中，sec_off 偏移处的表项，使其值为 data
+        // DONE: 2.2 修改第 i 个 FAT 表中，clus_sec 扇区中，sec_off 偏移处的表项，使其值为 data
         //   1. 计算第 i 个 FAT 表所在扇区，进一步计算 clus 对应的 FAT 表项所在扇区
         //   2. 读取该扇区并在对应位置写入数据
         //   3. 将该扇区写回
@@ -854,9 +854,9 @@ int alloc_clusters(size_t n, cluster_t* first_clus) {
     cluster_t* clusters = malloc((n + 1) * sizeof(cluster_t));
     size_t allocated = 0;  // 已找到的空闲簇个数
 
-    // FIXME: 2.3 扫描 FAT 表，找到 n 个空闲的簇，存入 cluster 数组。注意此时不需要修改对应的 FAT 表项。
+    // DONE: 2.3 扫描 FAT 表，找到 n 个空闲的簇，存入 cluster 数组。注意此时不需要修改对应的 FAT 表项。
     // Hint: 你可以使用 read_fat_entry 函数来读取 FAT 表项的值，根据该值判断簇是否空闲。
-    for (cluster_t clus = CLUSTER_MIN; clus <= CLUSTER_MAX; clus++) {
+    for (cluster_t clus = CLUSTER_MIN; ((allocated < n) && (clus <= CLUSTER_MAX)); clus++) {
         if (read_fat_entry(clus) == CLUSTER_FREE) {
             clusters[allocated++] = clus;
         }
@@ -880,7 +880,7 @@ int alloc_clusters(size_t n, cluster_t* first_clus) {
         }
     }
 
-    // FIXME: 2.5 连接要分配的簇的 FAT 表项（Hint: 使用 write_fat_entry）
+    // DONE: 2.5 连接要分配的簇的 FAT 表项（Hint: 使用 write_fat_entry）
     // Hint: 将每个簇连接到下一个即可
     for (size_t i = 0; i < n; i++) {
         write_fat_entry(clusters[i], clusters[i + 1]);
@@ -982,11 +982,11 @@ int fat16_utimens(const char* path, const struct timespec tv[2], struct fuse_fil
  *
  * @param path 创建的文件夹路径
  * @param mode 文件模式，本次实验可忽略，默认都为普通文件夹
- * @return int 成功: 0， 失败: POSIX 错误代码的负值
+ * @return int 成功: 0，失败: POSIX 错误代码的负值
  */
 int fat16_mkdir(const char* path, mode_t mode) {
-    printf("mkdir(path='%s', mode=%03o, dev=%lu)\n", path, mode);
-    // FIXME: 2.6 参考 fat16_mknod 实现，创建新目录
+    printf("mkdir(path='%s', mode=%03o)\n", path, mode);
+    // DONE: 2.6 参考 fat16_mknod 实现，创建新目录
     // Hint: 注意设置的属性不同。
     // Hint: 新目录最开始即有两个目录项，分别是. 和..，所以需要给新目录分配一个簇。
     // Hint: 你可以使用 alloc_clusters 来分配簇。
@@ -1006,7 +1006,7 @@ int fat16_mkdir(const char* path, mode_t mode) {
         return ret;
     }
 
-    // FIXME: 2.7 使用 dir_entry_create 创建 . 和 .. 目录项
+    // DONE: 2.7 使用 dir_entry_create 创建 . 和 .. 目录项
     // Hint: 两个目录项分别在你刚刚分配的簇的前两项。
     // Hint: 记得修改下面的返回值。
     cluster_t first_clus = 0;
@@ -1053,9 +1053,9 @@ int fat16_rmdir(const char* path) {
         return -ENOTDIR;
     }
 
-    // FIXME: 请参考 fat16_unlink 实现，实现删除目录功能。
+    // DONE: 请参考 fat16_unlink 实现，实现删除目录功能。
     // Hint: 你只需要删除为空的目录，不为空的目录返回 -ENOTEMPTY 错误即可。
-    if (!dir_empty) { // 目录非空，返回
+    if (!dir_empty(dir)) { // 目录非空，返回
         return -ENOTEMPTY;
     }
     free_clusters(dir->DIR_FstClusLO);
@@ -1103,6 +1103,7 @@ int file_reserve_clusters(DIR_ENTRY* dir, size_t size) {
     //   2. 如果文件没有簇，直接分配足够的簇
     //   3. 如果文件已有簇，找到最后一个簇（哪个簇是当前该文件的最后一个簇？），并计算需要额外分配多少个簇
     //   4. 分配额外的簇，并将分配好的簇连在最后一个簇后
+    return -1;
 }
 
 /**
