@@ -41,7 +41,7 @@ def workload(dir):
             f.write('a' * 2333)
         if i % 100 == 0:
             print(f'Written {i}/{T} times.', flush=True)
-    
+
     # random read from random files
     for i in range(T):
         f = random.choice(files)
