@@ -197,7 +197,7 @@ bool check_name(const char* name, size_t len, const DIR_ENTRY* dir) {
  * @brief 读取簇号为 clus 对应的 FAT 表项
  *
  * @param clus 簇号
- * @return cluster_t FAT 返回值：对应 FAT 表项的值
+ * @return cluster_t 对应 FAT 表项的值
  */
 cluster_t read_fat_entry(cluster_t clus) {
     // DONE: 1.4 读取簇号为 clus 对应的 FAT 表项，步骤如下：
@@ -571,9 +571,9 @@ int fat16_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t off
     char sector_buffer[MAX_LOGICAL_SECTOR_SIZE];
     char name[MAX_NAME_LEN];
     // puts("[fat16_readdir]");
+    sector_t first_sec;
+    size_t nsec;
     while (root || is_cluster_inuse(clus)) {
-        sector_t first_sec;
-        size_t nsec;
         if (root) {
             first_sec = meta.root_sec;
             nsec = meta.root_sectors;
@@ -613,6 +613,45 @@ int fat16_readdir(const char* path, void* buf, fuse_fill_dir_t filler, off_t off
     }
 
     return 0;
+}
+
+/**
+ * @brief 判断目录是否为空（考虑 ., ..）
+ *
+ * @param dir    DIR_ENTRY*
+ * @return int    0 则不为空，1 则为空，小于 0 则出错
+ */
+int dir_empty(DIR_ENTRY* dir) {
+    // Hint: 你需要类似 fat16_readdir 一样，读取目录项，来判断目录是否为空。
+    // Hint: 空目录中也有. 和.. 两个目录项，你要正确地忽略它们。
+    bool is_empty = true;
+    cluster_t clus = CLUSTER_END;
+    clus = dir->DIR_FstClusLO;
+    if (!is_directory(dir->DIR_Attr)) {
+        return -ENOTDIR;
+    }
+    char sector_buffer[MAX_LOGICAL_SECTOR_SIZE];
+    sector_t first_sec;
+    size_t nsec;
+    while (is_empty && is_cluster_inuse(clus)) { // FIXME: 循环应该没有用（空目录下只有两个条目）
+        first_sec = cluster_first_sector(clus);
+        nsec = meta.sec_per_clus;
+        for (size_t i = 0; (is_empty && (i < nsec)); i++) {
+            sector_t sec = first_sec + i;
+            sector_read(sec, sector_buffer);
+            for (size_t offset = 0; offset < meta.sector_size; offset += DIR_ENTRY_SIZE) {
+                DIR_ENTRY* dir = (DIR_ENTRY*)(sector_buffer + offset);
+                if (is_valid(dir) && !is_dot(dir)) {
+                    is_empty = false;
+                    break;
+                } else if (is_free(dir)) {
+                    break;
+                }
+            }
+        }
+        clus = read_fat_entry(clus);
+    }
+    return is_empty;
 }
 
 /**
@@ -712,10 +751,15 @@ int fat16_read(const char* path, char* buffer, size_t size, off_t offset, struct
  */
 int dir_entry_write(DirEntrySlot slot) {
     char sector_buffer[PHYSICAL_SECTOR_SIZE];
-    // TODO: 2.1
+    // FIXME: 2.1
     //  1. 读取 slot.dir 所在的扇区
     //  2. 将目录项写入 buffer 对应的位置（Hint: 使用 memcpy）
     //  3. 将整个扇区完整写回
+    int ret = sector_read(slot.sector, sector_buffer);
+    if (ret != 0) // 读取错误
+        return ret;
+    memcpy(sector_buffer + slot.offset, &(slot.dir), DIR_ENTRY_SIZE);
+    sector_write(slot.sector, sector_buffer);
     return 0;
 }
 
@@ -748,7 +792,7 @@ int dir_entry_create(DirEntrySlot slot, const char* shortname, attr_t attr, clus
 /**
  * @brief 将 data 写入簇号为 clusterN 的簇对应的 FAT 表项，注意要对文件系统中所有 FAT 表都进行相同的写入。
  *
- * @param clus  要写入表项的簇号
+ * @param clus      要写入表项的簇号
  * @param data      要写入表项的数据，如下一个簇号，CLUSTER_END（文件末尾），或者 0（释放该簇）等等
  * @return int      成功返回 0
  */
@@ -810,8 +854,13 @@ int alloc_clusters(size_t n, cluster_t* first_clus) {
     cluster_t* clusters = malloc((n + 1) * sizeof(cluster_t));
     size_t allocated = 0;  // 已找到的空闲簇个数
 
-    // TODO: 2.3 扫描 FAT 表，找到 n 个空闲的簇，存入 cluster 数组。注意此时不需要修改对应的 FAT 表项。
+    // FIXME: 2.3 扫描 FAT 表，找到 n 个空闲的簇，存入 cluster 数组。注意此时不需要修改对应的 FAT 表项。
     // Hint: 你可以使用 read_fat_entry 函数来读取 FAT 表项的值，根据该值判断簇是否空闲。
+    for (cluster_t clus = CLUSTER_MIN; clus <= CLUSTER_MAX; clus++) {
+        if (read_fat_entry(clus) == CLUSTER_FREE) {
+            clusters[allocated++] = clus;
+        }
+    }
 
     if (allocated != n) {  // 找不到 n 个簇，分配失败
         free(clusters);
@@ -821,8 +870,8 @@ int alloc_clusters(size_t n, cluster_t* first_clus) {
     // 找到了 n 个空闲簇，将 CLUSTER_END 加至末尾。
     clusters[n] = CLUSTER_END;
 
-    // DONE: 2.4 修改 clusters 中存储的 N 个簇对应的 FAT 表项，将每个簇与下一个簇连接在一起。同时清零每一个新分配的簇。
-    // 清零要分配的簇
+    // 修改 clusters 中存储的 N 个簇对应的 FAT 表项，将每个簇与下一个簇连接在一起。同时清零每一个新分配的簇。
+    // DONE: 2.4 清零要分配的簇
     for (size_t i = 0; i < n; i++) {
         int ret = cluster_clear(clusters[i]);
         if (ret < 0) {
@@ -831,10 +880,13 @@ int alloc_clusters(size_t n, cluster_t* first_clus) {
         }
     }
 
-    // TODO: 2.5 连接要分配的簇的 FAT 表项（Hint: 使用 write_fat_entry）
+    // FIXME: 2.5 连接要分配的簇的 FAT 表项（Hint: 使用 write_fat_entry）
     // Hint: 将每个簇连接到下一个即可
+    for (size_t i = 0; i < n; i++) {
+        write_fat_entry(clusters[i], clusters[i + 1]);
+    }
 
-    *first_clus = clusters[0];
+    *first_clus = clusters[0]; // 返回值
     free(clusters);
     return 0;
 }
@@ -862,7 +914,7 @@ int fat16_mknod(const char* path, mode_t mode, dev_t dev) {
         return ret;
     }
     // 这里创建文件时首簇号填了 0，你可以根据自己需要修改。
-    ret = dir_entry_create(slot, shortname, ATTR_REGULAR, 0, 0);
+    ret = dir_entry_create(slot, shortname, ATTR_REGULAR, CLUSTER_END, 0);
     if (ret < 0) {
         return ret;
     }
@@ -933,18 +985,50 @@ int fat16_utimens(const char* path, const struct timespec tv[2], struct fuse_fil
  * @return int 成功: 0， 失败: POSIX 错误代码的负值
  */
 int fat16_mkdir(const char* path, mode_t mode) {
-    // TODO: 2.6 参考 fat16_mknod 实现，创建新目录
+    printf("mkdir(path='%s', mode=%03o, dev=%lu)\n", path, mode);
+    // FIXME: 2.6 参考 fat16_mknod 实现，创建新目录
     // Hint: 注意设置的属性不同。
     // Hint: 新目录最开始即有两个目录项，分别是. 和..，所以需要给新目录分配一个簇。
     // Hint: 你可以使用 alloc_clusters 来分配簇。
+    DirEntrySlot slot;
+    const char* filename = NULL;
+    int ret = find_empty_slot(path, &slot, &filename);
+    if (ret < 0) {
+        return ret;
+    }
+    char shortname[11];
+    ret = to_shortname(filename, MAX_NAME_LEN, shortname);
+    if (ret < 0) {
+        return ret;
+    }
+    ret = dir_entry_create(slot, shortname, ATTR_DIRECTORY, CLUSTER_END, 0);
+    if (ret < 0) {
+        return ret;
+    }
 
-    const char DOT_NAME[] =    ".          ";
-    const char DOTDOT_NAME[] = "..         ";
-
-    // TODO: 2.7 使用 dir_entry_create 创建 . 和 .. 目录项
+    // FIXME: 2.7 使用 dir_entry_create 创建 . 和 .. 目录项
     // Hint: 两个目录项分别在你刚刚分配的簇的前两项。
     // Hint: 记得修改下面的返回值。
-    return -ENOSYS;
+    cluster_t first_clus = 0;
+    const char DOT_NAME[] = ".          ";
+    const char DOTDOT_NAME[] = "..         ";
+
+    ret = alloc_clusters(1, &first_clus);
+    if (ret < 0) {
+        return ret;
+    }
+    slot.sector = cluster_first_sector(first_clus);
+    slot.offset = 0;
+    ret = dir_entry_create(slot, DOT_NAME, ATTR_DIRECTORY, CLUSTER_END, 0);
+    if (ret < 0) {
+        return ret;
+    }
+    slot.offset = DIR_ENTRY_SIZE;
+    ret = dir_entry_create(slot, DOTDOT_NAME, ATTR_DIRECTORY, CLUSTER_END, 0);
+    if (ret < 0) {
+        return ret;
+    }
+    return 0;
 }
 
 /**
@@ -969,13 +1053,19 @@ int fat16_rmdir(const char* path) {
         return -ENOTDIR;
     }
 
-    // TODO: 请参考 fat16_unlink 实现，实现删除目录功能。
+    // FIXME: 请参考 fat16_unlink 实现，实现删除目录功能。
     // Hint: 你只需要删除为空的目录，不为空的目录返回 -ENOTEMPTY 错误即可。
-    // Hint: 你需要类似 fat16_readdir 一样，读取目录项，来判断目录是否为空。
-    // Hint: 空目录中也有. 和.. 两个目录项，你要正确地忽略它们。
+    if (!dir_empty) { // 目录非空，返回
+        return -ENOTEMPTY;
+    }
+    free_clusters(dir->DIR_FstClusLO);
+    char sector_buffer[PHYSICAL_SECTOR_SIZE];
+    sector_read(slot.sector, sector_buffer);
+    // memcpy(sector_buffer + slot.offset, &NAME_DELETED, 1);
+    memset(sector_buffer + slot.offset, NAME_DELETED, 1);
+    sector_write(slot.sector, sector_buffer);
     // Hint: 记得修改下面的返回值
-
-    return -ENOTSUP;
+    return 0;
 }
 
 // ------------------TASK3: 写文件、裁剪文件 -----------------------------------
