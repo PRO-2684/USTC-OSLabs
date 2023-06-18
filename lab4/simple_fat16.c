@@ -1132,15 +1132,15 @@ int file_reserve_clusters(DIR_ENTRY* dir, size_t size) {
         clus = read_fat_entry(clus);
     }
     if (size > clus_cnt * meta.cluster_size) {
-        cluster_t new_clus_cnt = (size + meta.cluster_size - 1) / meta.cluster_size - clus_cnt;
-        cluster_t new_clus_fst;
-        int ret = alloc_clusters(new_clus_cnt, &new_clus_fst);
+        cluster_t added_clus_cnt = (size + meta.cluster_size - 1) / meta.cluster_size - clus_cnt;
+        cluster_t added_clus_fst;
+        int ret = alloc_clusters(added_clus_cnt, &added_clus_fst);
         if (ret < 0)
             return ret;
         if (last == CLUSTER_END) {
-            dir->DIR_FstClusLO = new_clus_fst;
+            dir->DIR_FstClusLO = added_clus_fst;
         } else {
-            write_fat_entry(last, new_clus_fst);
+            write_fat_entry(last, added_clus_fst);
         }
     }
     return 0;
