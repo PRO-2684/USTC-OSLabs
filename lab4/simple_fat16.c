@@ -810,6 +810,7 @@ int write_fat_entry(cluster_t clus, cluster_t data) {
         sector += clus_sec;
         sector_read(sector, sector_buffer);
         memcpy(sector_buffer + sec_off, &data, sizeof(data) / sizeof(char));
+        sector_write(sector, sector_buffer);
     }
     return 0;
 }
