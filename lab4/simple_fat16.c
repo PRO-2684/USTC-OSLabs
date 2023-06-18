@@ -673,9 +673,8 @@ int read_from_cluster_at_offset(cluster_t clus, off_t offset, char* data, size_t
     size_t pos = 0;
     while (pos < size) {
         int ret = sector_read(sec, sector_buffer);
-        if (ret < 0) {
+        if (ret < 0)
             return ret;
-        }
         size_t len = min(meta.sector_size - sec_off, size - pos);
         memcpy(data + pos, sector_buffer + sec_off, len);
         pos += len;
@@ -1072,22 +1071,39 @@ int fat16_rmdir(const char* path) {
 // ------------------TASK3: 写文件、裁剪文件 -----------------------------------
 
 /**
- * @brief 将 data 中的数据写入编号为 clusterN 的簇的 offset 位置。
+ * @brief 将 data 中的数据写入编号为 clus 的簇的 offset 位置。
  *        注意 size+offset <= 簇大小
  *
- * @param fat16_ins 文件系统指针
- * @param clusterN  要写入数据的块号
+ * @param clus  要写入数据的块号
+ * @param offset    要写入簇的偏移量
  * @param data      要写入的数据
  * @param size      要写入数据的大小（字节）
- * @param offset    要写入簇的偏移量
  * @return ssize_t  成功写入的字节数，失败返回错误代码负值。可能部分成功，此时仅返回成功写入的字节数，不提供错误原因（POSIX 标准）。
  */
 ssize_t write_to_cluster_at_offset(cluster_t clus, off_t offset, const char* data, size_t size) {
+    // DONE: 参考注释，以及 read_from_cluster_at_offset 函数，实现写入簇的功能。
     assert(offset + size <= meta.cluster_size);  // offset + size 必须小于簇大小
     char sector_buffer[PHYSICAL_SECTOR_SIZE];
 
+    uint32_t sec = cluster_first_sector(clus) + offset / meta.sector_size;
+    size_t sec_off = offset % meta.sector_size;
     size_t pos = 0;
-    // TODO: 参考注释，以及 read_from_cluster_at_offset 函数，实现写入簇的功能。
+    int ret;
+    while (pos < size) {
+        size_t len = min(meta.sector_size - sec_off, size - pos);
+        if (len < meta.sector_size) { // 需要保留原来的部分数据
+            ret = sector_read(sec, sector_buffer);
+            if (ret < 0)
+                return ret;
+        }
+        memcpy(sector_buffer + sec_off, data + pos, len);
+        ret = sector_write(sec, sector_buffer);
+        if (ret < 0)
+            return ret;
+        pos += len;
+        sec_off = 0;
+        sec++;
+    }
     return pos;
 }
 
@@ -1099,12 +1115,35 @@ ssize_t write_to_cluster_at_offset(cluster_t clus, off_t offset, const char* dat
  * @return int 成功返回 0
  */
 int file_reserve_clusters(DIR_ENTRY* dir, size_t size) {
-    // TODO: 为文件分配新的簇至足够容纳 size 大小
+    // DONE: 为文件分配新的簇至足够容纳 size 大小
     //   1. 计算需要多少簇
     //   2. 如果文件没有簇，直接分配足够的簇
     //   3. 如果文件已有簇，找到最后一个簇（哪个簇是当前该文件的最后一个簇？），并计算需要额外分配多少个簇
     //   4. 分配额外的簇，并将分配好的簇连在最后一个簇后
-    return -1;
+    cluster_t clus_cnt = 0;
+    cluster_t clus = dir->DIR_FstClusLO;
+    cluster_t last = CLUSTER_END; // 循环结束后值为最后的 cluster
+    if (size > dir->DIR_FileSize) {
+        dir->DIR_FileSize = size;
+    }
+    while (is_cluster_inuse(clus)) {
+        clus_cnt++;
+        last = clus;
+        clus = read_fat_entry(clus);
+    }
+    if (size > clus_cnt * meta.cluster_size) {
+        cluster_t new_clus_cnt = (size + meta.cluster_size - 1) / meta.cluster_size - clus_cnt;
+        cluster_t new_clus_fst;
+        int ret = alloc_clusters(new_clus_cnt, &new_clus_fst);
+        if (ret < 0)
+            return ret;
+        if (last == CLUSTER_END) {
+            dir->DIR_FstClusLO = new_clus_fst;
+        } else {
+            write_fat_entry(last, new_clus_fst);
+        }
+    }
+    return 0;
 }
 
 /**
@@ -1120,8 +1159,57 @@ int file_reserve_clusters(DIR_ENTRY* dir, size_t size) {
  */
 int fat16_write(const char* path, const char* data, size_t size, off_t offset, struct fuse_file_info* fi) {
     printf("write(path='%s', offset=%ld, size=%lu)\n", path, offset, size);
-    // TODO: 写文件，请自行实现，将在下周发布进一步说明。
-    return -ENOTSUP;
+    if (path_is_root(path))
+        return -EISDIR;
+    // DONE: 写文件。
+    //   1. 通过 path 获取到对应的目录项，即 DIR_ENTRY 结构体，通过调用 find_entry 即可（任务一中实现）。
+    //   2. 比较新写入的数据和文件原来的数据所需的簇数量。(file_reserve_clusters)
+    //     如果新写入的数据所需的簇数量大于原来所需的簇数量，则需要为文件扩容簇数量。
+    //     即在 FAT 表中查找未分配的簇，并链接在文件末尾。如果你完成了前置任务中的 alloc_clusters ，你可以在此处使用它，为你分配你所需要的簇数量，你只需要正确地将分配好的簇链连接在你文件的末尾即可。
+    //     （如果文件原来没有任何簇，你要把簇链连接在目录项的 DIR.FstClusLo ，否则，连接在原文件簇链的末尾。）
+    //   3. 按需扩容后，只需要实现写文件操作即可。(write_to_cluster_at_offset)
+    //     通过 DIR.FstClusLo 获取第一个簇号，之后可以通过链接依次遍历，找到要写入簇的位置，并在读取相应的扇区，修改扇区的正确位置，并写回扇区。
+    //     （这个过程和 read 的实现很类似。）
+    //   4. 更新对应的目录项，上述过程中，可能修改了目录项的 FstClusLo。
+    //     最后，你还需要更新 FileSize，然后将更改后的目录项写回镜像文件。（使用 dir_entry_write）
+    //   5. 返回成功写入的数据字节数。
+    if (size == 0)
+        return 0;
+    if (offset + size < offset) // 溢出
+        return -EINVAL;
+    // 1
+    DirEntrySlot slot;
+    DIR_ENTRY* dir = &(slot.dir);
+    int ret = find_entry(path, &slot);
+    if (ret < 0)
+        return ret;
+    if (is_directory(dir->DIR_Attr))
+        return -EISDIR;
+    if (offset > dir->DIR_FileSize)
+        return -EINVAL;
+    // 2
+    ret = file_reserve_clusters(dir, offset + size);
+    if (ret < 0)
+        return ret;
+    // 3
+    cluster_t clus = dir->DIR_FstClusLO;
+    size_t p = 0;
+    while (p < size) {
+        if (offset > meta.cluster_size) {
+            offset -= meta.cluster_size;
+        } else {
+            ret = write_to_cluster_at_offset(clus, offset, data + p, min(size - p, meta.cluster_size - offset));
+            p += ret;
+            offset = 0;
+        }
+        clus = read_fat_entry(clus);
+    }
+    // 4
+    ret = dir_entry_write(slot);
+    if (ret < 0)
+        return ret;
+    // 5
+    return size;
 }
 
 /**
