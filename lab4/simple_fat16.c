@@ -858,6 +858,7 @@ int alloc_clusters(size_t n, cluster_t* first_clus) {
     // Hint: 你可以使用 read_fat_entry 函数来读取 FAT 表项的值，根据该值判断簇是否空闲。
     for (cluster_t clus = CLUSTER_MIN; ((allocated < n) && (clus <= CLUSTER_MAX)); clus++) {
         if (read_fat_entry(clus) == CLUSTER_FREE) {
+            printf("[alloc_clusters] Allocated cluster #%x.\n", clus);
             clusters[allocated++] = clus;
         }
     }
@@ -1224,8 +1225,70 @@ int fat16_write(const char* path, const char* data, size_t size, off_t offset, s
  */
 int fat16_truncate(const char* path, off_t size, struct fuse_file_info* fi) {
     printf("truncate(path='%s', size=%lu)\n", path, size);
-    // TODO: 裁剪文件，请自行实现，将在下周发布说明。
-    return -ENOTSUP;
+    if (path_is_root(path))
+        return -EISDIR;
+    // FIXME: 裁剪文件。
+    // 1. 通过 path 获取到对应的目录项，即 DIR_ENTRY 结构体，通过调用 find_entry 即可
+    DirEntrySlot slot;
+    DIR_ENTRY* dir = &(slot.dir);
+    int ret = find_entry(path, &slot);
+    if (ret < 0)
+        return ret;
+    if (is_directory(dir->DIR_Attr))
+        return -EISDIR;
+
+    // 2. 计算并比较原文件拥有的簇数量 n1 ，和文件截断后需要的新簇数量 n2 。通过比较 n1 和 n2 的大小，来判断文件是否需要新增或释放簇：
+    off_t old_size = dir->DIR_FileSize;
+    // new_size = size
+    cluster_t old_clus_cnt = 0;
+    cluster_t new_clus_cnt = (size + meta.cluster_size - 1) / meta.cluster_size;
+    cluster_t clus = dir->DIR_FstClusLO;
+    cluster_t last = CLUSTER_END; // clus 之前的 cluster
+    while (is_cluster_inuse(clus)) {
+        old_clus_cnt++;
+        last = clus;
+        clus = read_fat_entry(clus);
+    }
+    if (old_clus_cnt == new_clus_cnt) { // a. n1 == n2 ：此时不需要任何操作
+        return 0;
+    } else if (old_clus_cnt < new_clus_cnt) { // b. n1 < n2 ：此时需要扩容文件大小，可以参照 fat16_write 实现思路。
+        cluster_t added_clus_fst;
+        // printf("[fat16_truncate] Extending file: allocating clusters %d -> %d...\n", old_clus_cnt, new_clus_cnt);
+        ret = alloc_clusters(new_clus_cnt - old_clus_cnt, &added_clus_fst);
+        // printf("[fat16_truncate] Allocated first cluster: #%x.\n", added_clus_fst);
+        if (ret < 0)
+            return ret;
+        if (last == CLUSTER_END) {
+            dir->DIR_FstClusLO = added_clus_fst;
+        } else {
+            write_fat_entry(last, added_clus_fst);
+        }
+    } else { // c. n1 > n2 ：此时需要截断文件，找到文件的第 n2 个簇，更改 FAT 表项，将此处改为文件末尾，并释放后续所有簇。（释放可使用 Part1 中的 free_clusters 函数。）
+        // printf("[fat16_truncate] Shrinking file: %d -> %d...\n", old_clus_cnt, new_clus_cnt);
+        clus = dir->DIR_FstClusLO;
+        for (int i = 0; i < new_clus_cnt; i++) {
+            last = clus;
+            clus = read_fat_entry(clus);
+        }
+        if (new_clus_cnt == 0) {
+            dir->DIR_FstClusLO = CLUSTER_END;
+        } else {
+            write_fat_entry(last, CLUSTER_END);
+        }
+        // printf("[fat16_truncate] Freeing cluster from #%x...", clus);
+        free_clusters(clus);
+    }
+    dir->DIR_FileSize = size;
+
+    // 3. 按需写入，比较新文件的大小 new_size （就是参数中的 size ） 和原来的文件大小 old_size :
+
+    // a. new_size > old_size ：需要从 old_size 位置开始，将后续文件数据清空为 0x00 。如果你正确实现了 alloc_clusters ，那么新分配的簇应该已经清空，而已有的最后一个簇的末尾也在上一次分配时清空过。
+    // b. new_size <= old_size ：不需要进行任何操作
+    // c. 实现目录项的更新，通过 find_entry 可以获取到目录项对应的偏移量，更新对应的目录项数据写入即可
+    dir_entry_write(slot);
+
+    // 4. 返回 0 表示正常结束，否则表示异常
+    return 0;
 }
 
 struct fuse_operations fat16_oper = {
