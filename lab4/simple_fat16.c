@@ -256,7 +256,6 @@ int find_entry_in_sectors(const char* name, size_t len, sector_t from_sector, si
                 return FIND_EXIST;
             }
             // 4. 如果不是待查找的目录项，检查该目录项是否为空，如果为空，将该目录项的信息填入 slot 中，并返回 FIND_EMPTY
-            // DONE: 实际上有想要的目录项，但是由于它之前有空槽，所以返回了空槽？
             if (is_free(dir)) {
                 slot->dir = *dir;
                 slot->sector = from_sector + i;
@@ -997,27 +996,26 @@ int fat16_mkdir(const char* path, mode_t mode) {
     if (ret < 0) {
         return ret;
     }
+    cluster_t first_clus = 0;
+    ret = alloc_clusters(1, &first_clus);
+    if (ret < 0) {
+        return ret;
+    }
     char shortname[11];
     ret = to_shortname(filename, MAX_NAME_LEN, shortname);
     if (ret < 0) {
         return ret;
     }
-    ret = dir_entry_create(slot, shortname, ATTR_DIRECTORY, CLUSTER_END, 0);
+    ret = dir_entry_create(slot, shortname, ATTR_DIRECTORY, first_clus, 0);
     if (ret < 0) {
         return ret;
     }
-
     // DONE: 2.7 使用 dir_entry_create 创建 . 和 .. 目录项
     // Hint: 两个目录项分别在你刚刚分配的簇的前两项。
     // Hint: 记得修改下面的返回值。
-    cluster_t first_clus = 0;
     const char DOT_NAME[] = ".          ";
     const char DOTDOT_NAME[] = "..         ";
 
-    ret = alloc_clusters(1, &first_clus);
-    if (ret < 0) {
-        return ret;
-    }
     slot.sector = cluster_first_sector(first_clus);
     slot.offset = 0;
     ret = dir_entry_create(slot, DOT_NAME, ATTR_DIRECTORY, CLUSTER_END, 0);
