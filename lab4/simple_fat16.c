@@ -1225,7 +1225,7 @@ int fat16_truncate(const char* path, off_t size, struct fuse_file_info* fi) {
     printf("truncate(path='%s', size=%lu)\n", path, size);
     if (path_is_root(path))
         return -EISDIR;
-    // FIXME: 裁剪文件。
+    // DONE: 裁剪文件。
     // 1. 通过 path 获取到对应的目录项，即 DIR_ENTRY 结构体，通过调用 find_entry 即可
     DirEntrySlot slot;
     DIR_ENTRY* dir = &(slot.dir);
